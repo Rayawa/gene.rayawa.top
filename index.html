@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlphaFold-Next: 基因编辑实时预测系统</title>
+    <script src="https://3Dmol.org/build/3Dmol-min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;500&display=swap');
+        body { background-color: #020617; font-family: 'Inter', sans-serif; cursor: default; }
+        .mono { font-family: 'Fira Code', monospace; }
+        .viewport-shadow { box-shadow: 0 0 50px rgba(34, 211, 238, 0.05); }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        .dna-base { transition: all 0.3s ease; }
+    </style>
+</head>
+<body class="text-slate-200 overflow-hidden">
+
+    <div class="h-screen w-screen flex flex-col p-6 gap-6 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black">
+        <header class="flex justify-between items-center border-b border-slate-800/50 pb-4">
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+                    <span class="text-cyan-500">AlphaFold</span> <span class="font-light text-slate-400">Predictor v3.0</span>
+                </h1>
+                <p class="text-[10px] text-slate-500 mono uppercase tracking-[0.2em] mt-1 text-slate-500">Intelligent Genetic Folding Protocol</p>
+            </div>
+            <div class="flex items-center gap-6 text-[10px] mono">
+                <div class="flex flex-col items-end">
+                    <span class="text-slate-500 uppercase">Processing Unit</span>
+                    <span class="text-cyan-400">NVIDIA RTX CLOUD NODE-04</span>
+                </div>
+                <div class="bg-cyan-500/10 text-cyan-400 px-3 py-1.5 rounded border border-cyan-500/20">
+                    LATENCY: 14ms
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-1 flex gap-6 overflow-hidden">
+            <div class="w-80 flex flex-col gap-4">
+                <div class="bg-slate-900/40 backdrop-blur-xl border border-slate-800 p-5 rounded-3xl">
+                    <h2 class="text-xs font-bold text-slate-500 mb-4 flex items-center gap-2 uppercase tracking-wider">
+                        <span class="w-1.5 h-1.5 rounded-full bg-cyan-500"></span>
+                        Sequence Editor
+                    </h2>
+                    
+                    <div class="bg-black/60 p-4 rounded-xl border border-slate-800 mb-6 group">
+                        <code id="sequence-display" class="text-xs break-all leading-relaxed tracking-tighter block mono text-slate-400">
+                            ATGGGCAGCA<span id="base-highlight" class="dna-base px-1 rounded bg-cyan-500/20 text-cyan-400 ring-1 ring-cyan-500/50">T</span>GGTCCGC...
+                        </code>
+                    </div>
+
+                    <div class="space-y-2">
+                        <button onclick="runSimulation('wild')" class="w-full bg-slate-800/50 hover:bg-slate-700 border border-slate-700 p-3 rounded-xl transition-all flex items-center justify-between group">
+                            <span class="text-sm font-medium">野生型 (Wild Type)</span>
+                            <span class="text-[9px] text-slate-500 group-hover:text-cyan-400 transition-colors">WT-01</span>
+                        </button>
+                        <button onclick="runSimulation('mutant')" class="w-full bg-slate-800/50 hover:bg-blue-900/20 border border-slate-700 hover:border-blue-500/50 p-3 rounded-xl transition-all flex items-center justify-between group">
+                            <span class="text-sm font-medium">点突变 (Mutation)</span>
+                            <span class="text-[9px] text-blue-500 uppercase font-bold">Modified</span>
+                        </button>
+                        <button onclick="runSimulation('failed')" class="w-full bg-slate-800/50 hover:bg-rose-900/20 border border-slate-700 hover:border-rose-500/50 p-3 rounded-xl transition-all flex items-center justify-between group">
+                            <span class="text-sm font-medium">框架移位 (Frameshift)</span>
+                            <span class="text-[9px] text-rose-500 uppercase font-bold">Error</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex-1 bg-black/40 border border-slate-800 p-4 rounded-3xl overflow-hidden flex flex-col">
+                    <h3 class="text-[9px] font-bold text-slate-600 uppercase mb-3 tracking-widest flex justify-between">
+                        <span>Diagnostics Log</span>
+                        <span class="animate-pulse">●</span>
+                    </h3>
+                    <div id="log-container" class="flex-1 text-[10px] mono text-cyan-500/60 overflow-y-auto space-y-1.5 scroll-smooth">
+                        <div>> System kernel ready.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex-1 relative bg-slate-900/10 rounded-[2.5rem] border border-slate-800/50 overflow-hidden viewport-shadow">
+                
+                <div id="loader" class="absolute inset-0 z-20 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center transition-all duration-700 hidden">
+                    <div class="relative w-48 h-48 mb-8">
+                        <div class="absolute inset-0 border-4 border-cyan-500/10 rounded-full"></div>
+                        <div id="progress-circle" class="absolute inset-0 border-4 border-cyan-500 rounded-full transition-all duration-300" style="clip-path: inset(100% 0 0 0)"></div>
+                        <div class="absolute inset-0 flex items-center justify-center flex-col">
+                            <span id="progress-text" class="text-3xl font-light text-cyan-400 mono">0%</span>
+                            <span class="text-[8px] text-slate-500 tracking-tighter uppercase text-slate-500">Folding Confidence</span>
+                        </div>
+                    </div>
+                    <div id="loader-status" class="text-[10px] mono text-cyan-500/80 tracking-widest animate-pulse uppercase">Optimizing peptide bonds...</div>
+                </div>
+
+                <div id="glv" class="w-full h-full"></div>
+
+                <div class="absolute top-6 right-6 bg-slate-900/80 backdrop-blur border border-white/5 p-3 rounded-2xl">
+                    <div class="text-[9px] font-bold text-slate-500 mb-2 uppercase tracking-tighter text-slate-500">Chain Polarity (N → C)</div>
+                    <div class="flex gap-0.5 h-1.5 w-32 rounded-full overflow-hidden">
+                        <div class="flex-1 bg-blue-600"></div>
+                        <div class="flex-1 bg-cyan-400"></div>
+                        <div class="flex-1 bg-yellow-400"></div>
+                        <div class="flex-1 bg-rose-500"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // 1. 初始化 3D 视图引擎
+        let element = document.getElementById('glv');
+        let viewer = $3Dmol.createViewer(element, { 
+            backgroundColor: 'rgba(2,6,23,0)',
+            id: "alpha_view"
+        });
+        viewer.setFog(true);
+
+        function addLog(text) {
+            const container = document.getElementById('log-container');
+            const entry = document.createElement('div');
+            entry.className = "border-l border-cyan-900 pl-2 ml-1";
+            entry.innerText = `[${new Date().toLocaleTimeString()}] ${text}`;
+            container.appendChild(entry);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // 2. 核心渲染函数
+        function renderModel(filename, baseColor = 'spectrum') {
+            console.log("Loading model:", filename);
+            viewer.clear();
+            viewer.removeAllSurfaces();
+
+            fetch(`./${filename}`)
+                .then(res => {
+                    if(!res.ok) throw new Error("File node not found: " + filename);
+                    return res.text();
+                })
+                .then(data => {
+                    viewer.addModel(data, "cif");
+                    
+                    // 使用内置配色防止全黑
+                    viewer.setStyle({}, { 
+                        cartoon: { 
+                            color: baseColor, 
+                            outline: true,
+                            outlineColor: '#000',
+                            outlineWidth: 0.05,
+                            thickness: 0.8
+                        } 
+                    });
+
+                    // 增加极轻微的表面感
+                    viewer.addSurface($3Dmol.SurfaceType.VDW, {
+                        opacity: 0.05,
+                        color: 'white'
+                    }, {hetatm: false});
+
+                    viewer.zoomTo();
+                    viewer.render();
+                    viewer.spin(true); 
+                    
+                    addLog(`Model initialized: ${filename.toUpperCase()}`);
+                })
+                .catch(err => {
+                    addLog(`CRITICAL ERROR: ${err.message}`);
+                    console.error(err);
+                });
+        }
+
+        // 3. 模拟 AI 预测逻辑
+        function runSimulation(type) {
+            const loader = document.getElementById('loader');
+            const progressText = document.getElementById('progress-text');
+            const progressCircle = document.getElementById('progress-circle');
+            const loaderStatus = document.getElementById('loader-status');
+
+            loader.classList.remove('hidden');
+            addLog(`Analyzing new sequence input...`);
+
+            let progress = 0;
+            const foldingStatuses = [
+                "Sequence alignment in progress...",
+                "Searching MSA databases...",
+                "Predicting secondary structures...",
+                "Running energy minimization...",
+                "Refining side-chain orientations...",
+                "Finalizing PDB coordinates..."
+            ];
+
+            const interval = setInterval(() => {
+                progress += Math.floor(Math.random() * 12) + 2;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(interval);
+                    
+                    setTimeout(() => {
+                        loader.classList.add('hidden');
+                        executeFinalAction(type);
+                    }, 600);
+                }
+
+                progressText.innerText = `${progress}%`;
+                // 修复 clip-path 逻辑方向
+                progressCircle.style.clipPath = `inset(${100 - progress}% 0 0 0)`;
+                
+                if (progress % 20 === 0) {
+                    loaderStatus.innerText = foldingStatuses[Math.floor(progress/20) % foldingStatuses.length];
+                }
+            }, 120); // 这里之前漏了闭合括号
+        }
+
+        function executeFinalAction(type) {
+            const baseHighlight = document.getElementById('base-highlight');
+            
+            if (type === 'wild') {
+                baseHighlight.innerText = 'T';
+                baseHighlight.className = "dna-base px-1 rounded bg-cyan-500/20 text-cyan-400 ring-1 ring-cyan-500/50";
+                renderModel('wild.cif', 'spectrum'); 
+            } else if (type === 'mutant') {
+                baseHighlight.innerText = 'C';
+                baseHighlight.className = "dna-base px-1 rounded bg-blue-500/20 text-blue-400 ring-1 ring-blue-500/50";
+                renderModel('mutant.cif', '#3b82f6'); 
+            } else {
+                baseHighlight.innerText = 'X';
+                baseHighlight.className = "dna-base px-1 rounded bg-rose-500/20 text-rose-500 ring-1 ring-rose-500/50 animate-pulse";
+                renderModel('failed.cif', '#64748b'); 
+            }
+        }
+
+        // 初始化
+        window.onload = () => {
+            runSimulation('wild');
+        };
+    </script>
+</body>
+</html>
