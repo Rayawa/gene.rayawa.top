@@ -2,236 +2,239 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AlphaFold-Next: 基因编辑实时预测系统</title>
-    <script src="https://3Dmol.org/build/3Dmol-min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>基因工程实验室 V4.1 - 黏性末端修复版</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;500&display=swap');
-        body { background-color: #020617; font-family: 'Inter', sans-serif; cursor: default; }
-        .mono { font-family: 'Fira Code', monospace; }
-        .viewport-shadow { box-shadow: 0 0 50px rgba(34, 211, 238, 0.05); }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
-        .dna-base { transition: all 0.3s ease; }
+        :root { --gene: #2ecc71; --plasmid: #3498db; --site: #f1c40f; --highlight: #fff200; --error: #e74c3c; }
+        body { font-family: 'Consolas', 'Monaco', monospace; background: #1e272e; color: white; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .lab-panel { width: 1000px; background: #2f3542; padding: 25px; border-radius: 15px; box-shadow: 0 10px 50px rgba(0,0,0,0.5); }
+        
+        .dna-container { background: #000; padding: 60px 20px; border-radius: 10px; margin: 20px 0; min-height: 400px; position: relative; border: 2px solid #444; overflow: hidden; }
+        .dna-row { display: flex; justify-content: center; align-items: center; gap: 2px; transition: all 0.6s ease; min-height: 60px; }
+        
+        .base-unit { display: inline-flex; flex-direction: column; align-items: center; width: 22px; position: relative; transition: all 0.3s; padding: 4px 0; }
+        .base-unit b { font-size: 16px; width: 100%; text-align: center; display: block; }
+        .base-unit b:nth-child(1) { border-bottom: 1px solid #444; color: #55efc4; } /* 上链 */
+        .base-unit b:nth-child(2) { color: #fab1a0; } /* 下链 */
+        
+        .label-tag { position: absolute; top: -35px; font-size: 10px; white-space: nowrap; padding: 2px 5px; border-radius: 3px; background: rgba(52, 152, 219, 0.8); }
+        
+        /* 核心修复：黏性末端视觉表现 */
+        /* 模拟 5' 伸出 (例如 G|AATTC)，切点在第1个碱基后 */
+        .is-cut-left b:nth-child(2), 
+        .is-cut-right b:nth-child(1) { opacity: 0.2; filter: blur(1px); } 
+        
+        /* 只有特定的碱基在切割后保留，形成阶梯 */
+        .fragment.cut-active .base-unit.is-site[data-idx="0"] b:nth-child(2) { visibility: hidden; } /* 只有第一列下链消失 */
+        .fragment.cut-active .base-unit.is-site:not([data-idx="0"]) b:nth-child(1) { visibility: hidden; } /* 后面所有列上链消失 */
+
+        .is-promoter { background: rgba(231, 76, 60, 0.1); border: 1px dashed #e74c3c; }
+        .is-terminator { background: rgba(155, 89, 182, 0.1); border: 1px dashed #9b59b6; }
+        .is-gene { background: rgba(46, 204, 113, 0.1); border-top: 2px solid var(--gene); border-bottom: 2px solid var(--gene); }
+        .highlight-active { background: rgba(241, 196, 15, 0.3); transform: scale(1.05); z-index: 10; }
+
+        /* 动画 */
+        .fragment { display: inline-flex; transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; }
+        .target-left-fly { transform: translate(-300px, -50px) rotate(-45deg); opacity: 0; }
+        .target-right-fly { transform: translate(300px, -50px) rotate(45deg); opacity: 0; }
+        .plasmid-waste-fly { transform: translateY(-120px) scale(0); opacity: 0; }
+        
+        .success-link { transform: translateY(135px); filter: drop-shadow(0 0 15px var(--gene)); }
+        .fail-shake { animation: shake 0.5s linear; transform: translateY(100px); }
+        @keyframes shake {
+            0%, 100% { transform: translateY(100px) translateX(0); }
+            25% { transform: translateY(100px) translateX(-10px); }
+            75% { transform: translateY(100px) translateX(10px); }
+        }
+
+        .controls { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin: 20px 0; }
+        .enzyme-chip { background: #3d4653; border: 1px solid #57606f; padding: 12px; border-radius: 6px; cursor: pointer; text-align: center; }
+        .enzyme-chip.active { background: var(--site); color: #000; font-weight: bold; }
+        
+        .btn-group { display: flex; gap: 15px; }
+        .btn { flex: 1; padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .btn-cut { background: #f39c12; color: white; }
+        .btn-ligate { background: #27ae60; color: white; opacity: 0.4; }
+        .btn-random { background: #6c5ce7; width: 180px; }
+        #ai-report { background: #000; padding: 15px; border-radius: 8px; margin-top: 15px; border-left: 5px solid var(--site); line-height: 1.6; }
     </style>
 </head>
-<body class="text-slate-200 overflow-hidden">
+<body>
 
-    <div class="h-screen w-screen flex flex-col p-6 gap-6 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black">
-        <header class="flex justify-between items-center border-b border-slate-800/50 pb-4">
-            <div>
-                <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-                    <span class="text-cyan-500">AlphaFold</span> <span class="font-light text-slate-400">Predictor v3.0</span>
-                </h1>
-                <p class="text-[10px] text-slate-500 mono uppercase tracking-[0.2em] mt-1 text-slate-500">Intelligent Genetic Folding Protocol</p>
-            </div>
-            <div class="flex items-center gap-6 text-[10px] mono">
-                <div class="flex flex-col items-end">
-                    <span class="text-slate-500 uppercase">Processing Unit</span>
-                    <span class="text-cyan-400">NVIDIA RTX CLOUD NODE-04</span>
-                </div>
-                <div class="bg-cyan-500/10 text-cyan-400 px-3 py-1.5 rounded border border-cyan-500/20">
-                    LATENCY: 14ms
-                </div>
-            </div>
-        </header>
-
-        <main class="flex-1 flex gap-6 overflow-hidden">
-            <div class="w-80 flex flex-col gap-4">
-                <div class="bg-slate-900/40 backdrop-blur-xl border border-slate-800 p-5 rounded-3xl">
-                    <h2 class="text-xs font-bold text-slate-500 mb-4 flex items-center gap-2 uppercase tracking-wider">
-                        <span class="w-1.5 h-1.5 rounded-full bg-cyan-500"></span>
-                        Sequence Editor
-                    </h2>
-                    
-                    <div class="bg-black/60 p-4 rounded-xl border border-slate-800 mb-6 group">
-                        <code id="sequence-display" class="text-xs break-all leading-relaxed tracking-tighter block mono text-slate-400">
-                            ATGGGCAGCA<span id="base-highlight" class="dna-base px-1 rounded bg-cyan-500/20 text-cyan-400 ring-1 ring-cyan-500/50">T</span>GGTCCGC...
-                        </code>
-                    </div>
-
-                    <div class="space-y-2">
-                        <button onclick="runSimulation('wild')" class="w-full bg-slate-800/50 hover:bg-slate-700 border border-slate-700 p-3 rounded-xl transition-all flex items-center justify-between group">
-                            <span class="text-sm font-medium">野生型 (Wild Type)</span>
-                            <span class="text-[9px] text-slate-500 group-hover:text-cyan-400 transition-colors">WT-01</span>
-                        </button>
-                        <button onclick="runSimulation('mutant')" class="w-full bg-slate-800/50 hover:bg-blue-900/20 border border-slate-700 hover:border-blue-500/50 p-3 rounded-xl transition-all flex items-center justify-between group">
-                            <span class="text-sm font-medium">点突变 (Mutation)</span>
-                            <span class="text-[9px] text-blue-500 uppercase font-bold">Modified</span>
-                        </button>
-                        <button onclick="runSimulation('failed')" class="w-full bg-slate-800/50 hover:bg-rose-900/20 border border-slate-700 hover:border-rose-500/50 p-3 rounded-xl transition-all flex items-center justify-between group">
-                            <span class="text-sm font-medium">框架移位 (Frameshift)</span>
-                            <span class="text-[9px] text-rose-500 uppercase font-bold">Error</span>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="flex-1 bg-black/40 border border-slate-800 p-4 rounded-3xl overflow-hidden flex flex-col">
-                    <h3 class="text-[9px] font-bold text-slate-600 uppercase mb-3 tracking-widest flex justify-between">
-                        <span>Diagnostics Log</span>
-                        <span class="animate-pulse">●</span>
-                    </h3>
-                    <div id="log-container" class="flex-1 text-[10px] mono text-cyan-500/60 overflow-y-auto space-y-1.5 scroll-smooth">
-                        <div>> System kernel ready.</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="flex-1 relative bg-slate-900/10 rounded-[2.5rem] border border-slate-800/50 overflow-hidden viewport-shadow">
-                
-                <div id="loader" class="absolute inset-0 z-20 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center transition-all duration-700 hidden">
-                    <div class="relative w-48 h-48 mb-8">
-                        <div class="absolute inset-0 border-4 border-cyan-500/10 rounded-full"></div>
-                        <div id="progress-circle" class="absolute inset-0 border-4 border-cyan-500 rounded-full transition-all duration-300" style="clip-path: inset(100% 0 0 0)"></div>
-                        <div class="absolute inset-0 flex items-center justify-center flex-col">
-                            <span id="progress-text" class="text-3xl font-light text-cyan-400 mono">0%</span>
-                            <span class="text-[8px] text-slate-500 tracking-tighter uppercase text-slate-500">Folding Confidence</span>
-                        </div>
-                    </div>
-                    <div id="loader-status" class="text-[10px] mono text-cyan-500/80 tracking-widest animate-pulse uppercase">Optimizing peptide bonds...</div>
-                </div>
-
-                <div id="glv" class="w-full h-full"></div>
-
-                <div class="absolute top-6 right-6 bg-slate-900/80 backdrop-blur border border-white/5 p-3 rounded-2xl">
-                    <div class="text-[9px] font-bold text-slate-500 mb-2 uppercase tracking-tighter text-slate-500">Chain Polarity (N → C)</div>
-                    <div class="flex gap-0.5 h-1.5 w-32 rounded-full overflow-hidden">
-                        <div class="flex-1 bg-blue-600"></div>
-                        <div class="flex-1 bg-cyan-400"></div>
-                        <div class="flex-1 bg-yellow-400"></div>
-                        <div class="flex-1 bg-rose-500"></div>
-                    </div>
-                </div>
-            </div>
-        </main>
+<div class="lab-panel">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="margin:0">🔬 基因工程：黏性末端实战模拟</h3>
+        <div style="display:flex; gap:10px;">
+            <button class="btn btn-random" onclick="generateRandomProblem()">🎲 随机出题</button>
+            <button class="btn btn-reset" onclick="location.reload()" style="background:#7f8c8d; color:white; border:none; padding:0 15px; border-radius:8px; cursor:pointer;">🔄 重置</button>
+        </div>
+    </div>
+    
+    <div class="dna-container">
+        <div style="font-size: 11px; color: #888; margin-bottom: 5px;">Source: 目的基因供体片段</div>
+        <div class="dna-row" id="target-dna"></div>
+        
+        <div style="font-size: 11px; color: #888; margin-top: 80px; margin-bottom: 5px;">Vector: 质粒载体 (P:启动子 / T:终止子)</div>
+        <div class="dna-row" id="plasmid-dna"></div>
     </div>
 
-    <script>
-        // 1. 初始化 3D 视图引擎
-        let element = document.getElementById('glv');
-        let viewer = $3Dmol.createViewer(element, { 
-            backgroundColor: 'rgba(2,6,23,0)',
-            id: "alpha_view"
+    <div class="controls" id="enzyme-pool"></div>
+
+    <div class="btn-group">
+        <button class="btn btn-cut" id="cut-btn" onclick="handleCut()">第一步：执行限制性核酸内切酶切割</button>
+        <button class="btn btn-ligate" id="ligate-btn" onclick="handleLigate()" disabled>第二步：DNA 连接酶尝试拼合</button>
+    </div>
+
+    <div id="ai-report" style="display:none">
+        <div id="diagnostic-text"></div>
+    </div>
+</div>
+
+<script>
+const enzymeLib = [
+    {n:"EcoRI", s:"GAATTC"}, {n:"BamHI", s:"GGATCC"}, {n:"HindIII", s:"AAGCTT"},
+    {n:"PstI", s:"CTGCAG"}, {n:"SmaI", s:"CCCGGG"}, {n:"XhoI", s:"CTCGAG"}
+];
+
+let currentProblem = {};
+let selected = new Set();
+let isCut = false;
+
+function generateRandomProblem() {
+    isCut = false;
+    selected.clear();
+    document.getElementById('ligate-btn').disabled = true;
+    document.getElementById('ligate-btn').style.opacity = "0.4";
+    document.getElementById('ai-report').style.display = "none";
+
+    const shuffled = [...enzymeLib].sort(() => 0.5 - Math.random());
+    const pool = shuffled.slice(0, 5);
+    const correctEnzymes = [pool[0], pool[1]];
+    const distractor = pool[2];
+
+    currentProblem = {
+        target: [
+            {s:"TAG", type:"waste"},
+            {s:correctEnzymes[0].s, e:correctEnzymes[0].n, type:"site"},
+            {s:"ATGCGTACGGTGA", t:"is-gene", label:"目的基因 (Target Gene)", type:"core"},
+            {s:correctEnzymes[1].s, e:correctEnzymes[1].n, type:"site"},
+            {s:"CGC", type:"waste"}
+        ],
+        plasmid: [
+            {s:"TTA", t:"is-promoter", label:"P", type:"stay"},
+            {s:correctEnzymes[0].s, e:correctEnzymes[0].n, type:"site"},
+            {s:distractor.s, e:distractor.n, type:"waste-mid"},
+            {s:correctEnzymes[1].s, e:correctEnzymes[1].n, type:"site"},
+            {s:"GGC", t:"is-terminator", label:"T", type:"stay"}
+        ],
+        correct: [correctEnzymes[0].n, correctEnzymes[1].n]
+    };
+
+    renderDNA('target-dna', currentProblem.target);
+    renderDNA('plasmid-dna', currentProblem.plasmid);
+    initEnzymePool(pool.map(e => e.n));
+}
+
+function renderDNA(containerId, data) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = "";
+    data.forEach((frag, fIdx) => {
+        const fragSpan = document.createElement('span');
+        fragSpan.className = 'fragment';
+        fragSpan.id = `${containerId}-f-${fIdx}`;
+        fragSpan.dataset.enzyme = frag.e || "";
+        
+        frag.s.split('').forEach((base, bIdx) => {
+            const unit = document.createElement('div');
+            unit.className = `base-unit ${frag.t || ''} ${frag.e ? 'is-site' : ''}`;
+            unit.dataset.idx = bIdx; // 记录碱基在识别序列中的位置
+            if(frag.label && bIdx === 0) unit.innerHTML += `<span class="label-tag">${frag.label}</span>`;
+            unit.innerHTML += `<b>${base}</b><b>${getPair(base)}</b>`;
+            fragSpan.appendChild(unit);
         });
-        viewer.setFog(true);
+        container.appendChild(fragSpan);
+    });
+}
 
-        function addLog(text) {
-            const container = document.getElementById('log-container');
-            const entry = document.createElement('div');
-            entry.className = "border-l border-cyan-900 pl-2 ml-1";
-            entry.innerText = `[${new Date().toLocaleTimeString()}] ${text}`;
-            container.appendChild(entry);
-            container.scrollTop = container.scrollHeight;
-        }
+function getPair(b) { return {A:'T', T:'A', G:'C', C:'G'}[b]; }
 
-        // 2. 核心渲染函数
-        function renderModel(filename, baseColor = 'spectrum') {
-            console.log("Loading model:", filename);
-            viewer.clear();
-            viewer.removeAllSurfaces();
-
-            fetch(`./${filename}`)
-                .then(res => {
-                    if(!res.ok) throw new Error("File node not found: " + filename);
-                    return res.text();
-                })
-                .then(data => {
-                    viewer.addModel(data, "cif");
-                    
-                    // 使用内置配色防止全黑
-                    viewer.setStyle({}, { 
-                        cartoon: { 
-                            color: baseColor, 
-                            outline: true,
-                            outlineColor: '#000',
-                            outlineWidth: 0.05,
-                            thickness: 0.8
-                        } 
-                    });
-
-                    // 增加极轻微的表面感
-                    viewer.addSurface($3Dmol.SurfaceType.VDW, {
-                        opacity: 0.05,
-                        color: 'white'
-                    }, {hetatm: false});
-
-                    viewer.zoomTo();
-                    viewer.render();
-                    viewer.spin(true); 
-                    
-                    addLog(`Model initialized: ${filename.toUpperCase()}`);
-                })
-                .catch(err => {
-                    addLog(`CRITICAL ERROR: ${err.message}`);
-                    console.error(err);
-                });
-        }
-
-        // 3. 模拟 AI 预测逻辑
-        function runSimulation(type) {
-            const loader = document.getElementById('loader');
-            const progressText = document.getElementById('progress-text');
-            const progressCircle = document.getElementById('progress-circle');
-            const loaderStatus = document.getElementById('loader-status');
-
-            loader.classList.remove('hidden');
-            addLog(`Analyzing new sequence input...`);
-
-            let progress = 0;
-            const foldingStatuses = [
-                "Sequence alignment in progress...",
-                "Searching MSA databases...",
-                "Predicting secondary structures...",
-                "Running energy minimization...",
-                "Refining side-chain orientations...",
-                "Finalizing PDB coordinates..."
-            ];
-
-            const interval = setInterval(() => {
-                progress += Math.floor(Math.random() * 12) + 2;
-                if (progress >= 100) {
-                    progress = 100;
-                    clearInterval(interval);
-                    
-                    setTimeout(() => {
-                        loader.classList.add('hidden');
-                        executeFinalAction(type);
-                    }, 600);
-                }
-
-                progressText.innerText = `${progress}%`;
-                // 修复 clip-path 逻辑方向
-                progressCircle.style.clipPath = `inset(${100 - progress}% 0 0 0)`;
-                
-                if (progress % 20 === 0) {
-                    loaderStatus.innerText = foldingStatuses[Math.floor(progress/20) % foldingStatuses.length];
-                }
-            }, 120); // 这里之前漏了闭合括号
-        }
-
-        function executeFinalAction(type) {
-            const baseHighlight = document.getElementById('base-highlight');
-            
-            if (type === 'wild') {
-                baseHighlight.innerText = 'T';
-                baseHighlight.className = "dna-base px-1 rounded bg-cyan-500/20 text-cyan-400 ring-1 ring-cyan-500/50";
-                renderModel('wild.cif', 'spectrum'); 
-            } else if (type === 'mutant') {
-                baseHighlight.innerText = 'C';
-                baseHighlight.className = "dna-base px-1 rounded bg-blue-500/20 text-blue-400 ring-1 ring-blue-500/50";
-                renderModel('mutant.cif', '#3b82f6'); 
-            } else {
-                baseHighlight.innerText = 'X';
-                baseHighlight.className = "dna-base px-1 rounded bg-rose-500/20 text-rose-500 ring-1 ring-rose-500/50 animate-pulse";
-                renderModel('failed.cif', '#64748b'); 
-            }
-        }
-
-        // 初始化
-        window.onload = () => {
-            runSimulation('wild');
+function initEnzymePool(names) {
+    const poolDiv = document.getElementById('enzyme-pool');
+    poolDiv.innerHTML = "";
+    names.forEach(name => {
+        const div = document.createElement('div');
+        div.className = 'enzyme-chip';
+        div.innerText = name;
+        div.onclick = function() {
+            if(isCut) return;
+            this.classList.toggle('active');
+            selected.has(name) ? selected.delete(name) : selected.add(name);
+            updateHighlights();
         };
-    </script>
+        poolDiv.appendChild(div);
+    });
+}
+
+function updateHighlights() {
+    document.querySelectorAll('.base-unit.is-site').forEach(unit => {
+        const parent = unit.parentElement;
+        if(selected.has(parent.dataset.enzyme)) unit.classList.add('highlight-active');
+        else unit.classList.remove('highlight-active');
+    });
+}
+
+function handleCut() {
+    if(selected.size === 0) return alert("请先选择限制酶！");
+    isCut = true;
+    
+    // 飞走动画：目的基因的两头飞走
+    if(selected.has(currentProblem.target[1].e)) {
+        document.getElementById('target-dna-f-0').classList.add('target-left-fly');
+        document.getElementById('target-dna-f-1').classList.add('cut-active');
+    }
+    if(selected.has(currentProblem.target[3].e)) {
+        document.getElementById('target-dna-f-4').classList.add('target-right-fly');
+        document.getElementById('target-dna-f-3').classList.add('cut-active');
+    }
+    
+    // 质粒位点变化：
+    if(selected.has(currentProblem.plasmid[1].e)) document.getElementById('plasmid-dna-f-1').classList.add('cut-active');
+    if(selected.has(currentProblem.plasmid[3].e)) document.getElementById('plasmid-dna-f-3').classList.add('cut-active');
+
+    // 质粒中间碎片飞走
+    const selArr = Array.from(selected);
+    if(selArr.includes(currentProblem.correct[0]) && selArr.includes(currentProblem.correct[1])) {
+        document.getElementById('plasmid-dna-f-2').classList.add('plasmid-waste-fly');
+    }
+
+    document.getElementById('ligate-btn').disabled = false;
+    document.getElementById('ligate-btn').style.opacity = "1";
+    showReport("<strong>✂️ 切割成功！</strong><br>注意观察序列两端的“阶梯状”结构，这就是<strong>黏性末端</strong>。只有互补的末端（如 AATT 与 TTAA）才能通过碱基互补配对原则重新连接。");
+}
+
+function handleLigate() {
+    const sel = Array.from(selected);
+    const geneFrag = document.getElementById('target-dna-f-2');
+    geneFrag.classList.remove('success-link', 'fail-shake');
+
+    if(sel.length === 2 && sel.includes(currentProblem.correct[0]) && sel.includes(currentProblem.correct[1])) {
+        // 成功时让位点视觉复原（表示已经连接上）
+        document.querySelectorAll('.fragment.cut-active').forEach(el => el.classList.remove('cut-active'));
+        geneFrag.classList.add('success-link');
+        showReport("<strong>✅ 连接成功！重组质粒构建完成。</strong><br>AI 诊断：双酶切产生了互补的黏性末端，实现了目的基因的<strong>定向连接</strong>。该质粒现在可以导入受体细胞进行表达了。");
+    } 
+    else {
+        setTimeout(() => geneFrag.classList.add('fail-shake'), 10);
+        showReport("<strong>❌ 连接失败：末端不匹配！</strong><br>AI 诊断：限制酶选择错误或不完整。产生的黏性末端无法形成稳定的氢键配对，DNA 连接酶无法将其骨架缝合。");
+    }
+}
+
+function showReport(txt) {
+    document.getElementById('ai-report').style.display = "block";
+    document.getElementById('diagnostic-text').innerHTML = txt;
+}
+
+generateRandomProblem();
+</script>
+
 </body>
 </html>
