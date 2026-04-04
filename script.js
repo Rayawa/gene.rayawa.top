@@ -72,24 +72,42 @@ function handleS2Insertion(ev) {
     const data = ev.dataTransfer.getData("type");
     if (data !== "bt-gene") return;
 
+    // 隐藏拖拽源
     const btGene = document.getElementById('bt-green-gene');
     btGene.classList.add('invisible');
 
-    const tdnaCore = document.getElementById('tdna-core');
-    const btClone = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    btClone.setAttribute("cx", tdnaCore.getAttribute("cx"));
-    btClone.setAttribute("cy", tdnaCore.getAttribute("cy"));
-    btClone.setAttribute("r", 15);
-    btClone.setAttribute("fill", "#22c55e");
-    btClone.classList.add('bt-inserted');
-    tdnaCore.parentNode.appendChild(btClone);
+    // 获取 SVG
+    const svg = document.getElementById('tdna-stroke').ownerSVGElement;
 
+    // 如果绿色弧不存在则创建
+    let btPath = document.getElementById('bt-inserted');
+    if (!btPath) {
+        btPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        btPath.setAttribute("d", "M 65,15 A 40,40 0 0 1 85,35");
+        btPath.setAttribute("fill", "none");
+        btPath.setAttribute("stroke", "#22c55e");
+        btPath.setAttribute("stroke-width", "10");
+        btPath.setAttribute("stroke-linecap", "round");
+        btPath.setAttribute("id", "bt-inserted");
+
+        // 初始化动画参数
+        const length = btPath.getTotalLength();
+        btPath.style.strokeDasharray = length;
+        btPath.style.strokeDashoffset = length;
+        btPath.style.transition = "stroke-dashoffset 1s ease forwards";
+
+        svg.appendChild(btPath); // 插入 SVG 最后，保证在上层
+
+        // 延迟触发动画
+        requestAnimationFrame(() => {
+            btPath.style.strokeDashoffset = 0;
+        });
+    }
+
+    // 更新状态并显示第二阶段
     state[2].inserted = true;
     initS2Components();
     document.getElementById('s2-phase-2').classList.remove('hidden');
-
-    const guide = document.getElementById('s2-guide');
-    guide.classList.add('hidden');
 }
 
 // 错误放置 Bt 基因
