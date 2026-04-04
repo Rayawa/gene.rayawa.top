@@ -1,224 +1,637 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <title>基因工程实验室 V4.0 - 随机实战版</title>
-    <style>
-        :root { --gene: #2ecc71; --plasmid: #3498db; --site: #f1c40f; --highlight: #fff200; --error: #e74c3c; }
-        body { font-family: 'Consolas', 'Monaco', monospace; background: #1e272e; color: white; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-        .lab-panel { width: 1000px; background: #2f3542; padding: 25px; border-radius: 15px; box-shadow: 0 10px 50px rgba(0,0,0,0.5); }
-        
-        .dna-container { background: #000; padding: 60px 20px; border-radius: 10px; margin: 20px 0; min-height: 360px; position: relative; border: 2px solid #444; overflow: hidden; }
-        .dna-row { display: flex; justify-content: center; align-items: center; gap: 2px; transition: all 0.6s ease; min-height: 60px; }
-        
-        .base-unit { display: inline-flex; flex-direction: column; align-items: center; width: 19px; position: relative; transition: all 0.4s; }
-        .base-unit b { font-size: 15px; }
-        .label-tag { position: absolute; top: -35px; font-size: 10px; white-space: nowrap; padding: 2px 5px; border-radius: 3px; background: rgba(52, 152, 219, 0.8); }
-        
-        .is-promoter { background: rgba(231, 76, 60, 0.2); border-top: 2px solid #e74c3c; }
-        .is-terminator { background: rgba(155, 89, 182, 0.2); border-top: 2px solid #9b59b6; }
-        .is-gene { background: rgba(46, 204, 113, 0.15); border-top: 2px solid var(--gene); }
-        .highlight-active { background: var(--highlight) !important; color: #000 !important; font-weight: bold; transform: scale(1.1); z-index: 30; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>基因工程：农杆菌转化法交互实验室 (沉浸版)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+.flow-step {
+flex: 1;
+text-align: center;
+padding: 12px 5px;
+border-bottom: 4px solid #e2e8f0;
+transition: all 0.3s;
+font-size: 0.75rem;
+color: #94a3b8;
+cursor: pointer;
+}
+.flow-step.active {
+border-bottom-color: #3b82f6;
+color: #1e40af;
+font-weight: bold;
+background: #eff6ff;
+}
+.flow-step.completed {
+border-bottom-color: #10b981;
+color: #065f46;
+}
 
-        /* 动画逻辑 */
-        .fragment { display: inline-flex; transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        .target-left-fly { transform: translate(-180px, 60px) rotate(-20deg); opacity: 0; }
-        .target-right-fly { transform: translate(180px, 60px) rotate(20deg); opacity: 0; }
-        .plasmid-waste-fly { transform: translateY(-80px) rotate(180deg); opacity: 0; }
-        
-        /* 拼合逻辑 */
-        .success-link { transform: translateY(145px) scale(1.0); color: var(--gene); filter: drop-shadow(0 0 8px var(--gene)); }
-        .fail-shake { animation: shake 0.5s linear; transform: translateY(100px); color: var(--error); }
-        @keyframes shake {
-            0%, 100% { transform: translateY(100px) translateX(0); }
-            20%, 60% { transform: translateY(100px) translateX(-10px); }
-            40%, 80% { transform: translateY(100px) translateX(10px); }
-        }
+.bacteria {
+width: 100px;
+height: 160px;
+border-radius: 50px;
+position: relative;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+cursor: pointer;
+transition: all 0.3s;
+border-width: 4px;
+background-color: white;
+}
 
-        .controls { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin: 20px 0; }
-        .enzyme-chip { background: #57606f; border: 1px solid #747d8c; padding: 10px; border-radius: 6px; cursor: pointer; text-align: center; font-size: 13px; }
-        .enzyme-chip.active { background: var(--site); color: #000; font-weight: bold; border-color: #fff; }
-        
-        .btn-group { display: flex; gap: 15px; }
-        .btn { flex: 1; padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 15px; }
-        .btn-cut { background: #f39c12; color: white; }
-        .btn-ligate { background: #27ae60; color: white; opacity: 0.4; }
-        .btn-random { background: #6c5ce7; width: 150px; }
-        .btn-reset { background: #7f8c8d; width: 100px; }
-        #ai-report { background: rgba(0,0,0,0.8); padding: 18px; border-radius: 8px; margin-top: 15px; border-left: 5px solid var(--site); font-size: 14px; }
-    </style>
+.plant-cell {
+width: 140px;
+height: 140px;
+border: 4px solid #a8a29e;
+background: #fafaf9;
+border-radius: 20px;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+position: relative;
+transition: all 0.3s;
+}
+
+.nucleoid-tangle {
+position: absolute;
+top: 30px;
+width: 60px;
+height: 60px;
+opacity: 0.4;
+pointer-events: none;
+}
+
+/* 动画定义 */
+@keyframes extract-bt {
+0% { transform: translate(0, 0) scale(1); opacity: 1; }
+100% { transform: translate(140px, -200px) scale(1.5); opacity: 1; }
+}
+@keyframes extract-ti {
+0% { transform: translate(0, 0) scale(1); opacity: 1; }
+100% { transform: translate(-140px, -200px) scale(1.5); opacity: 1; }
+}
+.extract-bt-anim { animation: extract-bt 1s forwards cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+.extract-ti-anim { animation: extract-ti 1s forwards cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+.tool-btn {
+padding: 4px 10px;
+border: 1px solid #cbd5e1;
+border-radius: 6px;
+font-size: 11px;
+background: white;
+transition: all 0.2s;
+}
+.tool-btn.selected {
+background: #1e293b;
+color: white;
+border-color: #1e293b;
+}
+
+.component-btn {
+padding: 6px 14px;
+border: 2px solid #e2e8f0;
+border-radius: 999px;
+font-size: 12px;
+cursor: pointer;
+transition: all 0.2s;
+background: white;
+}
+.component-btn.selected {
+border-color: #3b82f6;
+background: #3b82f6;
+color: white;
+}
+
+.guide-box {
+background: #f8fafc;
+border-left: 4px solid #3b82f6;
+padding: 14px;
+margin-top: 10px;
+border-radius: 0 8px 8px 0;
+font-size: 13px;
+}
+
+.callus {
+width: 80px;
+height: 60px;
+background: #fde68a;
+border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+animation: blob 3s infinite alternate;
+}
+@keyframes blob {
+from { border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; }
+to { border-radius: 60% 40% 30% 70% / 50% 60% 50% 40%; }
+}
+
+.check-item {
+padding: 10px;
+border-radius: 8px;
+margin-bottom: 8px;
+background: #f8fafc;
+border-left: 4px solid #cbd5e1;
+transition: all 0.5s;
+opacity: 0.4;
+}
+.check-item.done {
+opacity: 1;
+border-left-color: #10b981;
+background: #f0fdf4;
+}
+
+.modal-overlay {
+position: absolute;
+inset: 0;
+background: rgba(0,0,0,0.7);
+display: flex;
+align-items: center;
+justify-content: center;
+z-index: 100;
+backdrop-filter: blur(4px);
+}
+
+.toast {
+position: fixed;
+bottom: 80px;
+left: 50%;
+transform: translateX(-50%);
+background: #1e293b;
+color: white;
+padding: 12px 20px;
+border-radius: 12px;
+font-size: 13px;
+z-index: 200;
+opacity: 0;
+transition: opacity 0.3s;
+max-width: 80%;
+text-align: center;
+box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
+}
+
+/* 引导弹窗样式 */
+.guide-modal {
+background: white;
+padding: 24px;
+border-radius: 20px;
+max-width: 400px;
+width: 90%;
+box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+border: 2px solid #3b82f6;
+}
+</style>
 </head>
-<body>
+<body class="bg-slate-100 font-sans text-slate-800 select-none h-screen flex flex-col overflow-hidden">
 
-<div class="lab-panel">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h3 style="margin:0">🔬 基因工程：智能出题模拟实验室 (V4.0)</h3>
-        <div style="display:flex; gap:10px;">
-            <button class="btn btn-random" onclick="generateRandomProblem()">🎲 随机生成题目</button>
-            <button class="btn btn-reset" onclick="resetLab()">🔄 重置</button>
-        </div>
-    </div>
-    
-    <div class="dna-container">
-        <div style="font-size: 11px; color: #aaa; margin-bottom: 10px;">目的基因片段 (Linear DNA)</div>
-        <div class="dna-row" id="target-dna"></div>
-        
-        <div style="font-size: 11px; color: #aaa; margin: 90px 0 10px 0;">质粒载体 MCS 区 (Plasmid Vector)</div>
-        <div class="dna-row" id="plasmid-dna"></div>
-    </div>
+<div class="flex-1 flex overflow-hidden">
+<!-- Main Experiment Area -->
+<div class="flex-1 flex flex-col relative bg-white shadow-2xl">
+<!-- Navigation & Timer -->
+<div class="flex items-center bg-slate-50 border-b">
+<nav class="flex flex-1">
+<div id="nav-1" class="flow-step active" onclick="jumpTo(1)">1. 获取目的基因</div>
+<div id="nav-2" class="flow-step" onclick="jumpTo(2)">2. 构建表达载体</div>
+<div id="nav-3" class="flow-step" onclick="jumpTo(3)">3. 导入受体细胞</div>
+<div id="nav-4" class="flow-step" onclick="jumpTo(4)">4. 检测与鉴定</div>
+</nav>
+<div id="timer-box" class="px-6 border-l flex flex-col items-center justify-center bg-white min-w-[120px]">
+<span class="text-[10px] font-bold text-slate-400 uppercase">探究用时</span>
+<span id="display-time" class="text-xl font-black text-blue-600">00:00</span>
+</div>
+</div>
 
-    <div class="controls" id="enzyme-pool"></div>
+<main class="flex-1 p-6 relative bg-white overflow-hidden flex flex-col">
+<!-- Stage 1: Gene Extraction -->
+<div id="stage-1" class="stage-content h-full flex flex-col items-center justify-center relative">
+<div class="w-full max-w-4xl flex justify-around items-end gap-12 mt-20">
+<div class="flex flex-col items-center gap-6 relative">
+<div class="text-center">
+<p class="text-sm font-black text-blue-700">苏云金芽孢杆菌 (Bt)</p>
+<p class="text-[10px] text-slate-400 uppercase font-bold tracking-widest">目的基因供体</p>
+</div>
+<div id="bt-bacteria" class="bacteria border-blue-200 bg-blue-50/30" onclick="extractBt()">
+<svg class="nucleoid-tangle" viewBox="0 0 100 120"><path d="M20,40 C10,20 80,10 90,40 C100,70 10,110 30,80 C50,50 10,30 40,20 C70,10 90,60 70,90 C50,120 10,80 30,60 C50,40 80,80 60,100 C40,120 0,90 20,70 C40,50 90,40 70,20 C50,0 20,30 40,50" fill="none" stroke="#3b82f6" stroke-width="1.5" /></svg>
+<div class="plasmid-in-cell border-2 border-dashed border-green-300">
+<svg width="44" height="44" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="#86efac" stroke-width="4" /><path d="M 50,10 A 40,40 0 0 1 90,50" fill="none" stroke="#22c55e" stroke-width="8" stroke-linecap="round" /></svg>
+</div>
+<div id="bt-result" class="absolute hidden z-20 flex flex-col items-center">
+<div class="bg-green-500 h-3 w-16 rounded-full shadow-xl border-2 border-green-700"></div>
+<p class="text-[11px] text-green-700 font-black mt-2 whitespace-nowrap bg-white/80 px-2 rounded">Bt 目的基因</p>
+</div>
+</div>
+</div>
 
-    <div class="btn-group">
-        <button class="btn btn-cut" id="cut-btn" onclick="handleCut()">1. 切割片段</button>
-        <button class="btn btn-ligate" id="ligate-btn" onclick="handleLigate()" disabled>2. 尝试连接</button>
-    </div>
+<div class="flex flex-col items-center gap-6 relative">
+<div class="text-center">
+<p class="text-sm font-black text-emerald-700">土壤农杆菌</p>
+<p class="text-[10px] text-slate-400 uppercase font-bold tracking-widest">运载体来源</p>
+</div>
+<div id="ag-bacteria" class="bacteria border-emerald-200 bg-emerald-50/30" onclick="extractTi()">
+<svg class="nucleoid-tangle" viewBox="0 0 100 120"><path d="M30,30 C50,10 90,30 80,60 C70,90 20,110 40,80 C60,50 10,40 30,20 C50,0 90,50 70,80 C50,110 0,70 20,50 C40,30 80,70 60,90 C40,110 10,80 30,60 C50,40 90,30 70,10 C50,-10 20,20 40,40" fill="none" stroke="#10b981" stroke-width="1.5" /></svg>
+<div class="plasmid-in-cell border-2 border-dashed border-orange-300">
+<svg width="44" height="44" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="#fdba74" stroke-width="5" /><path d="M 50,10 A 40,40 0 0 1 84.6,70" fill="none" stroke="#f97316" stroke-width="8" stroke-linecap="round" /></svg>
+</div>
+<div id="ti-result" class="absolute hidden z-20 flex flex-col items-center">
+<svg width="70" height="70" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="#fbbf24" stroke-width="6" /><path d="M 50,10 A 40,40 0 0 1 84.6,70" fill="none" stroke="#ea580c" stroke-width="10" stroke-linecap="round" /></svg>
+<p class="text-[11px] text-orange-700 font-black mt-1 whitespace-nowrap bg-white/80 px-2 rounded">Ti 质粒</p>
+</div>
+</div>
+</div>
+</div>
+</div>
 
-    <div id="ai-report" style="display:none">
-        <div id="diagnostic-text"></div>
-    </div>
+<!-- Stage 2: Carrier Construction -->
+<div id="stage-2" class="stage-content hidden h-full flex flex-col items-center overflow-y-auto">
+<div id="s2-tools" class="w-full bg-slate-50 p-3 rounded-xl border border-slate-200 mb-4">
+<p class="text-[10px] font-black text-slate-500 uppercase mb-2 text-center">选择实验工具</p>
+<div class="flex justify-center gap-2 flex-wrap">
+<button class="tool-btn" onclick="toggleTool(this, '限制酶')">限制酶</button>
+<button class="tool-btn" onclick="toggleTool(this, 'DNA连接酶')">DNA连接酶</button>
+<button class="tool-btn" onclick="toggleTool(this, 'DNA聚合酶')">DNA聚合酶</button>
+<button class="tool-btn" onclick="toggleTool(this, '解旋酶')">解旋酶</button>
+</div>
+</div>
+
+<div id="s2-phase-1" class="w-full flex flex-col items-center">
+<p class="text-xs font-black text-slate-400 mb-4 uppercase tracking-wider">插入目的基因至 T-DNA 区域</p>
+<div class="mb-8">
+<div id="bt-green-gene" class="bg-green-500 h-4 w-20 rounded-full shadow-lg cursor-grab active:cursor-grabbing" draggable="true" ondragstart="onS2DragStart(event)"></div>
+<p class="text-[10px] text-center mt-2 text-green-600 font-bold">Bt 基因</p>
+</div>
+<div class="relative">
+<svg class="w-56 h-56" viewBox="0 0 200 200">
+<circle cx="100" cy="100" r="80" fill="none" stroke="#f1f5f9" stroke-width="12" />
+<path id="plasmid-bottom" d="M 20,100 A 80,80 0 0 0 180,100" fill="none" stroke="#94a3b8" stroke-width="12" stroke-linecap="round" />
+<path id="plasmid-top" d="M 180,100 A 80,80 0 0 0 20,100" fill="none" stroke="#f59e0b" stroke-width="12" stroke-linecap="round" ondragover="allowDrop(event)" ondrop="handleS2Insertion(event)"/>
+<path id="green-segment-top" d="M 180,100 A 80,80 0 0 0 20,100" class="hidden" fill="none" stroke="#22c55e" stroke-width="12.2" stroke-dasharray="50 251.2" stroke-dashoffset="-100" />
+</svg>
+</div>
+</div>
+<div id="s2-phase-2" class="hidden w-full max-w-xl flex flex-col items-center mt-6 pb-10">
+<p class="text-xs font-black text-slate-400 uppercase mb-4">完善重组载体元件</p>
+<div id="comp-container" class="flex flex-wrap justify-center gap-2 mb-6"></div>
+<button id="s2-validate-btn" onclick="checkFinalS2()" class="bg-blue-600 text-white px-8 py-2 rounded-full text-xs font-bold">验证载体</button>
+<div id="s2-guide" class="hidden w-full guide-box mt-6"></div>
+</div>
+</div>
+
+<!-- Stage 3: Transformation (RECONSTRUCTED) -->
+<div id="stage-3" class="stage-content hidden h-full flex flex-col items-center">
+<div class="text-center mb-6">
+<h3 id="s3-title" class="text-sm font-black text-slate-700">第一步：请选择重组Ti质粒的初始受体细胞</h3>
+<p class="text-[10px] text-slate-400 mt-1 uppercase">将重组质粒拖拽至目标细胞中</p>
+</div>
+
+<!-- 重组Ti质粒展示区 -->
+<div class="mb-10 p-6 bg-slate-50 rounded-3xl border border-dashed border-slate-300 relative">
+<div id="recomb-plasmid-container" class="cursor-grab active:cursor-grabbing flex flex-col items-center" draggable="true" ondragstart="onS3DragPlasmid(event)">
+<svg width="100" height="100" viewBox="0 0 100 100">
+<!-- 质粒骨架 -->
+<circle cx="50" cy="50" r="40" fill="none" stroke="#cbd5e1" stroke-width="6" />
+<!-- T-DNA 区域 (橙黄色) -->
+<path id="tdna-stroke" d="M 50,10 A 40,40 0 0 1 90,50" fill="none" stroke="#f59e0b" stroke-width="8" stroke-linecap="round" />
+<!-- 插入的 Bt 基因 (绿色) -->
+<path d="M 65,15 A 40,40 0 0 1 85,35" fill="none" stroke="#22c55e" stroke-width="10" stroke-linecap="round" />
+</svg>
+<div class="mt-2 flex flex-col items-center gap-1">
+<span class="text-[11px] font-bold text-slate-600">重组Ti质粒</span>
+<div class="flex gap-2">
+<span class="text-[9px] px-1 bg-amber-100 text-amber-700 rounded">T-DNA</span>
+<span class="text-[9px] px-1 bg-green-100 text-green-700 rounded">Bt基因</span>
+</div>
+</div>
+</div>
+<!-- T-DNA 提取物 (仅在第一步完成后显示) -->
+<div id="tdna-only-container" class="hidden absolute inset-0 flex flex-col items-center justify-center cursor-grab" draggable="true" ondragstart="onS3DragTDNA(event)">
+<div class="relative w-20 h-10 bg-amber-500 rounded-full flex items-center justify-center border-2 border-amber-700">
+<div class="w-10 h-3 bg-green-500 rounded-full border border-green-800"></div>
+</div>
+<span class="mt-2 text-[10px] font-black text-amber-700 uppercase">含Bt基因的T-DNA</span>
+</div>
+</div>
+
+<!-- 受体细胞展示区 -->
+<div class="flex gap-16 items-start">
+<!-- 植物细胞 -->
+<div class="flex flex-col items-center gap-3">
+<span class="text-[11px] font-bold text-slate-500 uppercase">目标：植物细胞</span>
+<div id="target-plant" class="plant-cell border-amber-200 hover:bg-amber-50" ondragover="allowDrop(event)" ondrop="onS3Drop(event, 'plant')">
+<div class="w-16 h-16 rounded-full border-4 border-slate-300 flex items-center justify-center bg-white shadow-inner">
+<div id="plant-nucleus-dna" class="w-10 h-1 text-slate-200 bg-slate-200 rounded-full"></div>
+</div>
+<p class="text-[10px] mt-2 text-slate-400">染色体 DNA</p>
+<div id="integrated-mark" class="hidden absolute top-2 right-2 text-green-600 text-lg">✔</div>
+</div>
+</div>
+
+<!-- 农杆菌 -->
+<div class="flex flex-col items-center gap-3">
+<span class="text-[11px] font-bold text-slate-500 uppercase">目标：土壤农杆菌</span>
+<div id="target-agro" class="bacteria border-emerald-200 hover:bg-emerald-50" ondragover="allowDrop(event)" ondrop="onS3Drop(event, 'agro')">
+<svg class="nucleoid-tangle" viewBox="0 0 100 120"><path d="M30,30 C50,10 90,30 80,60 C70,90 20,110 40,80" fill="none" stroke="#10b981" stroke-width="1.5" /></svg>
+<div id="agro-plasmid-placeholder" class="hidden mt-10">
+<svg width="30" height="30"><circle cx="15" cy="15" r="10" fill="none" stroke="#22c55e" stroke-width="3" stroke-dasharray="4 2"/></svg>
+</div>
+</div>
+</div>
+</div>
+
+<!-- 交互引导弹窗 (内部问题串) -->
+<div id="s3-guide-modal" class="hidden modal-overlay">
+<div class="guide-modal">
+<h4 class="text-blue-700 font-bold mb-2">🤔 思考一下：</h4>
+<p id="guide-text" class="text-sm text-slate-600 leading-relaxed mb-6"></p>
+<button onclick="closeGuide()" class="w-full bg-blue-600 text-white py-2 rounded-xl font-bold text-xs">我知道了，再去试试</button>
+</div>
+</div>
+</div>
+
+<!-- Stage 4: Testing -->
+<div id="stage-4" class="stage-content hidden h-full flex flex-row gap-6">
+<div class="flex-1 flex flex-col items-center bg-slate-50 rounded-3xl p-6 border">
+<div id="culture-dish" class="w-64 h-64 bg-white rounded-full border-8 border-slate-200 shadow-inner flex items-center justify-center relative">
+<div id="p4-leaf" class="text-7xl opacity-0 transition-opacity">🍃</div>
+<div id="p4-callus" class="hidden callus"></div>
+<div id="p4-plantlet" class="hidden text-8xl">🌱</div>
+<div id="p4-overlay" class="absolute inset-0 flex flex-col items-center justify-center bg-white/40 rounded-full">
+<p id="p4-status" class="text-[10px] font-bold text-blue-800 italic">组织培养中...</p>
+</div>
+</div>
+</div>
+<div class="w-64 flex flex-col gap-3">
+<div id="check-1" class="check-item"><p class="text-xs font-bold">分子水平检测 (PCR/杂交)</p></div>
+<div id="check-2" class="check-item"><p class="text-xs font-bold">个体水平鉴定 (抗虫性)</p></div>
+<button id="p4-start-test" class="hidden mt-4 bg-emerald-600 text-white py-2 rounded-xl text-xs font-bold" onclick="runChecks()">启动鉴定程序</button>
+</div>
+</div>
+
+<div id="quiz-modal" class="hidden modal-overlay p-8">
+<div class="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl">
+<div class="p-4 bg-slate-50 rounded-2xl border mb-6">
+<p class="text-sm font-bold mb-4">关键问题：农杆菌转化法中，目的基因最终整合到了？</p>
+<div class="grid gap-2">
+<button onclick="handleQuiz(this, true)" class="text-left p-3 text-xs border rounded-xl hover:bg-white transition">A. 受体细胞的染色体 DNA</button>
+<button onclick="handleQuiz(this, false)" class="text-left p-3 text-xs border rounded-xl hover:bg-white transition">B. 细胞质基质中</button>
+</div>
+</div>
+<button onclick="finishAll()" class="w-full bg-slate-800 text-white py-3 rounded-2xl font-bold">查看最终成绩</button>
+</div>
+</div>
+
+<div id="final-modal" class="hidden modal-overlay p-8">
+<div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl text-center">
+<div class="text-5xl mb-4">🎓</div>
+<h2 class="text-2xl font-black mb-2">实验探究完成！</h2>
+<div id="time-stats" class="text-blue-600 font-bold mb-6"></div>
+<button onclick="location.reload()" class="w-full bg-slate-100 text-slate-800 py-3 rounded-2xl font-bold">重新开始</button>
+</div>
+</div>
+
+<div id="toast-msg" class="toast">提示消息</div>
+</main>
+
+<footer class="bg-slate-50 border-t p-4 flex justify-between items-center">
+<div id="hint" class="text-xs text-blue-600 font-medium">提示：点击细菌以提取关键基因元件</div>
+<button id="submit-btn" onclick="nextStage()" class="px-10 py-2 bg-blue-600 text-white rounded-full text-xs font-bold disabled:bg-slate-300" disabled>提交阶段</button>
+</footer>
+</div>
 </div>
 
 <script>
-const enzymeLib = [
-    {n:"EcoRI", s:"GAATTC"}, {n:"BamHI", s:"GGATCC"}, {n:"HindIII", s:"AAGCTT"},
-    {n:"PstI", s:"CTGCAG"}, {n:"SmaI", s:"CCCGGG"}, {n:"XhoI", s:"CTCGAG"}
-];
+let currentStep = 1;
+let s2SelectedComps = new Set();
+let s2SelectedTools = new Set();
+let s3Progress = 'step1'; // step1: 质粒导入, step2: T-DNA导入
+let timeElapsed = 0; 
+let timerId = null;
+let isTimerRunning = true;
+let state = {
+1: { bt: false, ti: false },
+2: { inserted: false, validated: false },
+3: { agroConverted: false, plantInfected: false },
+4: { done: false }
+};
 
-let currentProblem = {};
-let selected = new Set();
-let isCut = false;
-
-function generateRandomProblem() {
-    isCut = false;
-    selected.clear();
-    document.getElementById('ligate-btn').disabled = true;
-    document.getElementById('ligate-btn').style.opacity = "0.4";
-    document.getElementById('ai-report').style.display = "none";
-
-    // 随机选 3-4 个限制酶
-    const shuffled = [...enzymeLib].sort(() => 0.5 - Math.random());
-    const pool = shuffled.slice(0, 5);
-    
-    // 确定正确答案（两个不同的酶）
-    const correctEnzymes = [pool[0], pool[1]];
-    const distractor = pool[2]; // 干扰项
-
-    currentProblem = {
-        target: [
-            {s:"AAA", type:"waste"},
-            {s:correctEnzymes[0].s, e:correctEnzymes[0].n, type:"site"},
-            {s:"CGTACGTAGCTAG", t:"is-gene", label:"抗虫基因", type:"core"},
-            {s:correctEnzymes[1].s, e:correctEnzymes[1].n, type:"site"},
-            {s:"TTT", type:"waste"}
-        ],
-        plasmid: [
-            {s:"TTA", t:"is-promoter", label:"启动子(P)", type:"stay"},
-            {s:correctEnzymes[0].s, e:correctEnzymes[0].n, type:"site"},
-            {s:distractor.s, e:distractor.n, type:"waste-mid"}, // 中间干扰
-            {s:correctEnzymes[1].s, e:correctEnzymes[1].n, type:"site"},
-            {s:"GGC", t:"is-terminator", label:"终止子(T)", type:"stay"}
-        ],
-        correct: [correctEnzymes[0].n, correctEnzymes[1].n]
-    };
-
-    renderDNA('target-dna', currentProblem.target);
-    renderDNA('plasmid-dna', currentProblem.plasmid);
-    initEnzymePool(pool.map(e => e.n));
+function showToast(text) {
+const toast = document.getElementById('toast-msg');
+toast.innerText = text;
+toast.style.opacity = "1";
+setTimeout(() => toast.style.opacity = "0", 3000);
 }
 
-function renderDNA(containerId, data) {
-    const container = document.getElementById(containerId);
-    container.innerHTML = "";
-    data.forEach((frag, fIdx) => {
-        const fragSpan = document.createElement('span');
-        fragSpan.className = 'fragment';
-        fragSpan.id = `${containerId}-f-${fIdx}`;
-        fragSpan.dataset.enzyme = frag.e || "";
-        
-        frag.s.split('').forEach((base, bIdx) => {
-            const unit = document.createElement('div');
-            unit.className = `base-unit ${frag.t || ''} ${frag.e ? 'is-site' : ''}`;
-            if(frag.label && bIdx === 0) unit.innerHTML += `<span class="label-tag">${frag.label}</span>`;
-            unit.innerHTML += `<b>${base}</b><b>${getPair(base)}</b>`;
-            fragSpan.appendChild(unit);
-        });
-        container.appendChild(fragSpan);
-    });
+window.onload = () => {
+timerId = setInterval(() => {
+if (!isTimerRunning) return;
+timeElapsed++;
+const m = Math.floor(timeElapsed / 60);
+const s = timeElapsed % 60;
+document.getElementById('display-time').innerText = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}, 1000);
+};
+
+function stopTimer() {
+isTimerRunning = false;
+clearInterval(timerId);
 }
 
-function getPair(b) { return {A:'T', T:'A', G:'C', C:'G'}[b]; }
-
-function initEnzymePool(names) {
-    const poolDiv = document.getElementById('enzyme-pool');
-    poolDiv.innerHTML = "";
-    names.forEach(name => {
-        const div = document.createElement('div');
-        div.className = 'enzyme-chip';
-        div.innerText = name;
-        div.onclick = function() {
-            if(isCut) return;
-            this.classList.toggle('active');
-            selected.has(name) ? selected.delete(name) : selected.add(name);
-            updateHighlights();
-        };
-        poolDiv.appendChild(div);
-    });
+/* --- STAGE 1 --- */
+function extractBt() {
+if(state[1].bt) return;
+const res = document.getElementById('bt-result');
+res.classList.remove('hidden');
+res.classList.add('extract-bt-anim');
+state[1].bt = true;
+checkS1();
+}
+function extractTi() {
+if(state[1].ti) return;
+const res = document.getElementById('ti-result');
+res.classList.remove('hidden');
+res.classList.add('extract-ti-anim');
+state[1].ti = true;
+checkS1();
+}
+function checkS1() {
+if(state[1].bt && state[1].ti) document.getElementById('submit-btn').disabled = false;
 }
 
-function updateHighlights() {
-    document.querySelectorAll('.base-unit.is-site').forEach(unit => {
-        const parent = unit.parentElement;
-        if(selected.has(parent.dataset.enzyme)) unit.classList.add('highlight-active');
-        else unit.classList.remove('highlight-active');
-    });
+/* --- STAGE 2 --- */
+function toggleTool(btn, toolName) {
+if (s2SelectedTools.has(toolName)) {
+s2SelectedTools.delete(toolName);
+btn.classList.remove('selected');
+} else {
+s2SelectedTools.add(toolName);
+btn.classList.add('selected');
+}
+}
+function onS2DragStart(ev) { ev.dataTransfer.setData("type", "bt-gene"); }
+function allowDrop(ev) { ev.preventDefault(); }
+function handleS2Insertion(ev) {
+ev.preventDefault();
+if (ev.dataTransfer.getData("type") !== "bt-gene") return;
+if (!s2SelectedTools.has('限制酶') || !s2SelectedTools.has('DNA连接酶')) {
+showToast("⚠️ 构建失败：切割与缝合工具缺失！");
+return;
+}
+document.getElementById('bt-green-gene').classList.add('invisible');
+document.getElementById('green-segment-top').classList.remove('hidden');
+state[2].inserted = true;
+initS2Components();
+document.getElementById('s2-phase-2').classList.remove('hidden');
+}
+function initS2Components() {
+const comps = ["启动子", "终止子", "标记基因", "复制原点", "内含子", "起始密码子"];
+const container = document.getElementById('comp-container');
+container.innerHTML = '';
+comps.forEach(c => {
+const btn = document.createElement('button');
+btn.className = "component-btn";
+btn.innerText = c;
+btn.onclick = () => {
+if(s2SelectedComps.has(c)) { s2SelectedComps.delete(c); btn.classList.remove('selected'); }
+else { s2SelectedComps.add(c); btn.classList.add('selected'); }
+};
+container.appendChild(btn);
+});
+}
+function checkFinalS2() {
+const required = ["启动子", "终止子", "标记基因", "复制原点"];
+const missing = required.filter(x => !s2SelectedComps.has(x));
+const guide = document.getElementById('s2-guide');
+guide.classList.remove('hidden');
+if (missing.length === 0) {
+guide.innerHTML = "<p class='text-green-700 font-bold'>✅ 载体构建成功！Ti质粒已准备就绪。</p>";
+state[2].validated = true;
+document.getElementById('submit-btn').disabled = false;
+} else {
+guide.innerHTML = `<p class='text-red-600 font-bold'>❌ 缺少必要元件：${missing.join('、')}</p>`;
+}
 }
 
-function handleCut() {
-    if(selected.size === 0) return alert("请先选择限制酶！");
-    isCut = true;
-    
-    // 飞走动画
-    if(selected.has(currentProblem.target[1].e)) document.getElementById('target-dna-f-0').classList.add('target-left-fly');
-    if(selected.has(currentProblem.target[3].e)) document.getElementById('target-dna-f-4').classList.add('target-right-fly');
-    
-    // 质粒中间碎片飞走判定
-    const selArr = Array.from(selected);
-    if(selArr.includes(currentProblem.correct[0]) && selArr.includes(currentProblem.correct[1])) {
-        document.getElementById('plasmid-dna-f-2').classList.add('plasmid-waste-fly');
-    }
-
-    document.getElementById('ligate-btn').disabled = false;
-    document.getElementById('ligate-btn').style.opacity = "1";
-    showReport("酶切完成。请观察末端序列，判断是否能进行拼合连接。");
+/* --- STAGE 3 (RECONSTRUCTED LOGIC) --- */
+function onS3DragPlasmid(ev) {
+if (s3Progress !== 'step1') return;
+ev.dataTransfer.setData("type", "plasmid");
 }
 
-function handleLigate() {
-    const sel = Array.from(selected);
-    const geneFrag = document.getElementById('target-dna-f-2');
-    geneFrag.classList.remove('success-link', 'fail-shake');
-
-    // 成功判断：双酶切且正确
-    if(sel.length === 2 && sel.includes(currentProblem.correct[0]) && sel.includes(currentProblem.correct[1])) {
-        geneFrag.classList.add('success-link');
-        showReport("<strong>✅ 定向连接完美成功！</strong><br>AI 诊断：末端完全互补，基因已成功嵌入质粒表达框架。");
-    } 
-    // 失败判断：不匹配导致抖动
-    else {
-        setTimeout(() => geneFrag.classList.add('fail-shake'), 10);
-        showReport("<strong>❌ 连接失败：末端无法配对！</strong><br>AI 诊断：由于限制酶选择错误，DNA 末端无法形成互补配对，连接酶无法工作。请尝试重置并重新分析位点。");
-    }
+function onS3DragTDNA(ev) {
+if (s3Progress !== 'step2') return;
+ev.dataTransfer.setData("type", "tdna");
 }
 
-function resetLab() { generateRandomProblem(); }
+function onS3Drop(ev, target) {
+ev.preventDefault();
+const type = ev.dataTransfer.getData("type");
 
-function showReport(txt) {
-    document.getElementById('ai-report').style.display = "block";
-    document.getElementById('diagnostic-text').innerHTML = txt;
+// 路径 1: 质粒导入阶段
+if (s3Progress === 'step1' && type === 'plasmid') {
+if (target === 'plant') {
+showS3Guide("Ti质粒能直接穿过植物细胞壁进入其内部吗？<br><br>想一想：在自然界中，农杆菌是如何将基因传递给植物的？它是整个质粒都进入植物细胞，还是只传递其中的一部分？");
+} else if (target === 'agro') {
+state[3].agroConverted = true;
+completeS3Step1();
+}
+} 
+// 路径 2: T-DNA 导入阶段
+else if (s3Progress === 'step2' && type === 'tdna') {
+if (target === 'plant') {
+completeS3Step2();
+} else {
+showToast("T-DNA 已经在农杆菌内了，现在需要侵染谁？");
+}
+}
 }
 
-generateRandomProblem();
+function completeS3Step1() {
+document.getElementById('recomb-plasmid-container').classList.add('hidden');
+document.getElementById('agro-plasmid-placeholder').classList.remove('hidden');
+showToast("✅ 转化成功！农杆菌已获得重组质粒。");
+setTimeout(() => {
+s3Progress = 'step2';
+document.getElementById('s3-title').innerText = "第二步：利用农杆菌侵染植物细胞";
+document.getElementById('tdna-only-container').classList.remove('hidden');
+document.getElementById('target-agro').classList.add('ring-4', 'ring-emerald-400');
+showToast("观察：农杆菌中的 T-DNA 已经准备好出发了！");
+}, 1000);
+}
+
+function completeS3Step2() {
+document.getElementById('tdna-only-container').classList.add('hidden');
+document.getElementById('plant-nucleus-dna').classList.replace('bg-slate-200', 'bg-green-600');
+document.getElementById('integrated-mark').classList.remove('hidden');
+state[3].plantInfected = true;
+showToast("🎉 成功！T-DNA 已整合进植物基因组。");
+document.getElementById('submit-btn').disabled = false;
+}
+
+function showS3Guide(text) {
+document.getElementById('guide-text').innerHTML = text;
+document.getElementById('s3-guide-modal').classList.remove('hidden');
+}
+
+function closeGuide() {
+document.getElementById('s3-guide-modal').classList.add('hidden');
+}
+
+/* --- STAGE 4 --- */
+function runChecks() {
+const c1 = document.getElementById('check-1');
+const c2 = document.getElementById('check-2');
+setTimeout(() => c1.classList.add('done'), 800);
+setTimeout(() => {
+c2.classList.add('done');
+state[4].done = true;
+stopTimer(); 
+document.getElementById('submit-btn').disabled = false;
+document.getElementById('submit-btn').innerText = "完成实验 (点击答题)";
+}, 1600);
+}
+
+function nextStage() {
+if (currentStep === 1) jumpTo(2);
+else if (currentStep === 2) jumpTo(3);
+else if (currentStep === 3) jumpTo(4);
+else if (currentStep === 4) document.getElementById('quiz-modal').classList.remove('hidden');
+}
+
+function jumpTo(n) {
+currentStep = n;
+document.querySelectorAll('.stage-content').forEach(s => s.classList.add('hidden'));
+document.getElementById('stage-' + n).classList.remove('hidden');
+document.querySelectorAll('.flow-step').forEach(s => s.classList.remove('active'));
+document.getElementById('nav-' + n).classList.add('active');
+document.getElementById('submit-btn').disabled = true;
+
+if (n === 4) {
+const leaf = document.getElementById('p4-leaf');
+leaf.style.opacity = "1";
+setTimeout(() => {
+leaf.classList.add('hidden');
+document.getElementById('p4-callus').classList.remove('hidden');
+document.getElementById('p4-status').innerText = "脱分化与再分化中...";
+}, 1000);
+setTimeout(() => {
+document.getElementById('p4-callus').classList.add('hidden');
+document.getElementById('p4-plantlet').classList.remove('hidden');
+document.getElementById('p4-overlay').classList.add('hidden');
+document.getElementById('p4-start-test').classList.remove('hidden');
+}, 2500);
+}
+}
+
+function handleQuiz(btn, correct) {
+if(correct) btn.classList.add('bg-green-100', 'border-green-500', 'text-green-700');
+else btn.classList.add('bg-red-100', 'border-red-500', 'text-red-700');
+}
+
+function finishAll() {
+document.getElementById('quiz-modal').classList.add('hidden');
+document.getElementById('final-modal').classList.remove('hidden');
+document.getElementById('time-stats').innerText = `实验总耗时：${document.getElementById('display-time').innerText}`;
+}
 </script>
-
 </body>
 </html>
