@@ -1,6 +1,5 @@
 
 let currentStep = 1;
-let s2SelectedComps = new Set();
 let s2SelectedTools = new Set();
 let s3Progress = 'step1'; // step1: 质粒导入, step2: T-DNA导入
 let timeElapsed = 0;
@@ -56,69 +55,54 @@ function checkS1() {
     if (state[1].bt && state[1].ti) document.getElementById('submit-btn').disabled = false;
 }
 
-/* --- STAGE 2 --- */
+/* --- STAGE 2 --- *//* --- STAGE 2 --- */
+const s2SelectedComps = new Set();
 
-function onS2DragStart(ev) { ev.dataTransfer.setData("type", "bt-gene"); }
-function allowDrop(ev) { ev.preventDefault(); }
+function onS2DragStart(ev) {
+    ev.dataTransfer.setData("type", "bt-gene");
+}
+
+function allowDrop(ev) {
+    ev.preventDefault();
+}
+
+// 正确放置 Bt 基因
 function handleS2Insertion(ev) {
     ev.preventDefault();
-    if(ev.dataTransfer.getData("type") !== "bt-gene") return;
+    const data = ev.dataTransfer.getData("type");
+    if (data !== "bt-gene") return;
 
-    const dropTarget = ev.target.id;
+    const btGene = document.getElementById('bt-green-gene');
+    btGene.classList.add('invisible');
 
-    // 拖到橙色 T-DNA 核心
-    if(dropTarget === "tdna-segment") {
-        document.getElementById('bt-green-gene').classList.add('invisible');
-        document.getElementById('green-segment-top').classList.remove('hidden');
+    const tdnaCore = document.getElementById('tdna-core');
+    const btClone = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    btClone.setAttribute("cx", tdnaCore.getAttribute("cx"));
+    btClone.setAttribute("cy", tdnaCore.getAttribute("cy"));
+    btClone.setAttribute("r", 15);
+    btClone.setAttribute("fill", "#22c55e");
+    btClone.classList.add('bt-inserted');
+    tdnaCore.parentNode.appendChild(btClone);
 
-        // 插入质粒内部（模拟放到圆环中间）
-        const plasmid = document.getElementById('ti-plasmid');
-        const insertedGene = document.createElement('div');
-        insertedGene.innerText = "Bt";
-        insertedGene.className = "absolute text-[10px] font-bold text-green-700";
-        insertedGene.style.left = "50%";
-        insertedGene.style.top = "50%";
-        insertedGene.style.transform = "translate(-50%, -50%)";
-        plasmid.parentNode.appendChild(insertedGene);
-
-        showLegendMessage("✅ 已拖入T-DNA核心，插入成功！");
-        state[2].inserted = true;
-        document.getElementById('s2-phase-2').classList.remove('hidden');
-
-    } else {
-        // 拖到其他段，显示加号反馈
-        showLegendMessage("➕ 已放置，但未落在核心T-DNA区域");
-    }
-
+    state[2].inserted = true;
     initS2Components();
+    document.getElementById('s2-phase-2').classList.remove('hidden');
+
+    const guide = document.getElementById('s2-guide');
+    guide.classList.add('hidden');
 }
 
-// 显示图例提示
-function showLegendMessage(msg){
-    let legendTip = document.getElementById('s2-legend-tip');
-    if(!legendTip){
-        legendTip = document.createElement('div');
-        legendTip.id = 's2-legend-tip';
-        legendTip.className = "absolute -right-36 top-3/4 text-[10px] text-slate-800";
-        document.getElementById('stage-2').appendChild(legendTip);
+// 错误放置 Bt 基因
+function handleS2WrongDrop(ev) {
+    ev.preventDefault();
+    const data = ev.dataTransfer.getData("type");
+    if (data === "bt-gene") {
+        const guide = document.getElementById('s2-guide');
+        guide.classList.remove('hidden');
+        guide.innerHTML = "<p class='text-red-600 font-bold'>❌ Bt 基因放置错误，请放到橙色 T-DNA 核心区域</p>";
     }
-    legendTip.innerText = msg;
 }
 
-// 显示图例提示
-function showLegendMessage(msg){
-    let legendTip = document.getElementById('s2-legend-tip');
-    if(!legendTip){
-        legendTip = document.createElement('div');
-        legendTip.id = 's2-legend-tip';
-        legendTip.className = "absolute -right-36 top-3/4 text-[10px] text-slate-800";
-        document.getElementById('stage-2').appendChild(legendTip);
-    }
-    legendTip.innerText = msg;
-}
-
-// 允许拖拽
-function allowDrop(ev){ ev.preventDefault(); }
 function initS2Components() {
     const comps = ["启动子", "终止子", "标记基因", "复制原点", "内含子", "起始密码子"];
     const container = document.getElementById('comp-container');
@@ -128,12 +112,18 @@ function initS2Components() {
         btn.className = "component-btn";
         btn.innerText = c;
         btn.onclick = () => {
-            if (s2SelectedComps.has(c)) { s2SelectedComps.delete(c); btn.classList.remove('selected'); }
-            else { s2SelectedComps.add(c); btn.classList.add('selected'); }
+            if (s2SelectedComps.has(c)) {
+                s2SelectedComps.delete(c);
+                btn.classList.remove('selected');
+            } else {
+                s2SelectedComps.add(c);
+                btn.classList.add('selected');
+            }
         };
         container.appendChild(btn);
     });
 }
+
 function checkFinalS2() {
     const required = ["启动子", "终止子", "标记基因", "复制原点"];
     const missing = required.filter(x => !s2SelectedComps.has(x));
@@ -147,7 +137,6 @@ function checkFinalS2() {
         guide.innerHTML = `<p class='text-red-600 font-bold'>❌ 缺少必要元件：${missing.join('、')}</p>`;
     }
 }
-
 /* --- STAGE 3 (RECONSTRUCTED LOGIC) --- */
 function onS3DragPlasmid(ev) {
     if (s3Progress !== 'step1') return;

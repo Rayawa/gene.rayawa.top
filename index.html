@@ -97,43 +97,59 @@
                 </div>
 
                 <!-- Stage 2: Carrier Construction -->
+                <!-- Stage 2: Carrier Construction -->
                 <div id="stage-2" class="stage-content hidden h-full flex flex-col items-center overflow-y-auto">
 
-
+                    <!-- Phase 1: 插入目的基因 -->
                     <div id="s2-phase-1" class="w-full flex flex-col items-center">
-                        <p class="text-xs font-black text-slate-400 mb-4 uppercase tracking-wider">插入目的基因至 T-DNA 区域</p>
+                        <p class="text-xs font-black text-slate-400 mb-4 uppercase tracking-wider">
+                            插入目的基因至 T-DNA 区域
+                        </p>
                         <div class="mb-8">
                             <div id="bt-green-gene"
                                 class="bg-green-500 h-4 w-20 rounded-full shadow-lg cursor-grab active:cursor-grabbing"
-                                draggable="true" ondragstart="onS2DragStart(event)"></div>
+                                draggable="true" ondragstart="onS2DragStart(event)">
+                            </div>
                             <p class="text-[10px] text-center mt-2 text-green-600 font-bold">Bt 基因</p>
                         </div>
+
                         <div id="ti-plasmid-container"
                             class="relative w-72 h-72 flex items-center justify-center font-sans">
                             <svg width="240" height="240" viewBox="0 0 240 240">
-                                <circle cx="120" cy="120" r="100" fill="none" stroke="#22c55e" stroke-width="20"
-                                    stroke-dasharray="69.81 558.51" stroke-dashoffset="0" />
+                                <!-- 启动子（绿色，错误目标） -->
+                                <circle cx="120" cy="120" r="100" fill="none" stroke="#07441d" stroke-width="20"
+                                    stroke-dasharray="69.81 558.51" stroke-dashoffset="0"
+                                    ondrop="handleS2WrongDrop(event)" ondragover="allowDrop(event)" />
 
+                                <!-- 终止子（蓝色，错误目标） -->
                                 <circle cx="120" cy="120" r="100" fill="none" stroke="#3b82f6" stroke-width="20"
-                                    stroke-dasharray="69.81 558.51" stroke-dashoffset="-69.81" />
+                                    stroke-dasharray="69.81 558.51" stroke-dashoffset="-69.81"
+                                    ondrop="handleS2WrongDrop(event)" ondragover="allowDrop(event)" />
 
-                                <circle cx="120" cy="120" r="100" fill="none" stroke="#f97316" stroke-width="20"
-                                    stroke-dasharray="139.62 488.70" stroke-dashoffset="-139.62" />
+                                <!-- T-DNA 核心（橙色，正确目标） -->
+                                <circle id="tdna-core" cx="120" cy="120" r="100" fill="none" stroke="#f97316"
+                                    stroke-width="20" stroke-dasharray="139.62 488.70" stroke-dashoffset="-139.62"
+                                    ondrop="handleS2Insertion(event)" ondragover="allowDrop(event)" />
 
+                                <!-- 复制原点（粉色，错误目标） -->
                                 <circle cx="120" cy="120" r="100" fill="none" stroke="#ec4899" stroke-width="20"
-                                    stroke-dasharray="69.81 558.51" stroke-dashoffset="-279.24" />
+                                    stroke-dasharray="69.81 558.51" stroke-dashoffset="-279.24"
+                                    ondrop="handleS2WrongDrop(event)" ondragover="allowDrop(event)" />
 
+                                <!-- 其他（灰色，错误目标） -->
                                 <circle cx="120" cy="120" r="100" fill="none" stroke="#9ca3af" stroke-width="20"
-                                    stroke-dasharray="279.25 349.07" stroke-dashoffset="-349.05" />
+                                    stroke-dasharray="279.25 349.07" stroke-dashoffset="-349.05"
+                                    ondrop="handleS2WrongDrop(event)" ondragover="allowDrop(event)" />
 
                                 <text x="120" y="120" text-anchor="middle" dominant-baseline="middle" font-size="16"
                                     font-weight="bold" fill="#111827">Ti质粒</text>
                             </svg>
 
+                            <!-- 图例 -->
                             <div
                                 class="absolute -right-40 top-1/2 -translate-y-1/2 flex flex-col gap-3 text-[11px] border border-gray-200 bg-white p-3.5 rounded-lg shadow-sm">
                                 <div class="flex items-center gap-2.5">
-                                    <div class="w-3.5 h-3.5 rounded-sm" style="background-color: #22c55e;"></div> 启动子
+                                    <div class="w-3.5 h-3.5 rounded-sm" style="background-color: #07441d;"></div> 启动子
                                 </div>
                                 <div class="flex items-center gap-2.5">
                                     <div class="w-3.5 h-3.5 rounded-sm" style="background-color: #3b82f6;"></div> 终止子
@@ -151,6 +167,8 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Phase 2: 完善重组载体元件 -->
                     <div id="s2-phase-2" class="hidden w-full max-w-xl flex flex-col items-center mt-6 pb-10">
                         <p class="text-xs font-black text-slate-400 uppercase mb-4">完善重组载体元件</p>
                         <div id="comp-container" class="flex flex-wrap justify-center gap-2 mb-6"></div>
