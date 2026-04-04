@@ -22,6 +22,14 @@
     flex-direction: column; align-items: center; justify-content: center;
     position: relative; transition: all 0.3s;
 }
+.plasmid-in-cell {
+    position: absolute;
+    bottom: 12px;      /* 👈 放到细菌下面 */
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: none; /* 防止挡点击 */
+}
+
 
 .nucleoid-tangle { position: absolute; top: 30px; width: 60px; height: 60px; opacity: 0.4; pointer-events: none; }
 

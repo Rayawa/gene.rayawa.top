@@ -57,30 +57,68 @@ function checkS1() {
 }
 
 /* --- STAGE 2 --- */
-function toggleTool(btn, toolName) {
-    if (s2SelectedTools.has(toolName)) {
-        s2SelectedTools.delete(toolName);
-        btn.classList.remove('selected');
-    } else {
-        s2SelectedTools.add(toolName);
-        btn.classList.add('selected');
-    }
-}
+
 function onS2DragStart(ev) { ev.dataTransfer.setData("type", "bt-gene"); }
 function allowDrop(ev) { ev.preventDefault(); }
 function handleS2Insertion(ev) {
     ev.preventDefault();
-    if (ev.dataTransfer.getData("type") !== "bt-gene") return;
-    if (!s2SelectedTools.has('限制酶') || !s2SelectedTools.has('DNA连接酶')) {
-        showToast("⚠️ 构建失败：切割与缝合工具缺失！");
-        return;
+    if(ev.dataTransfer.getData("type") !== "bt-gene") return;
+
+    const dropTarget = ev.target.id;
+
+    // 拖到橙色 T-DNA 核心
+    if(dropTarget === "tdna-segment") {
+        document.getElementById('bt-green-gene').classList.add('invisible');
+        document.getElementById('green-segment-top').classList.remove('hidden');
+
+        // 插入质粒内部（模拟放到圆环中间）
+        const plasmid = document.getElementById('ti-plasmid');
+        const insertedGene = document.createElement('div');
+        insertedGene.innerText = "Bt";
+        insertedGene.className = "absolute text-[10px] font-bold text-green-700";
+        insertedGene.style.left = "50%";
+        insertedGene.style.top = "50%";
+        insertedGene.style.transform = "translate(-50%, -50%)";
+        plasmid.parentNode.appendChild(insertedGene);
+
+        showLegendMessage("✅ 已拖入T-DNA核心，插入成功！");
+        state[2].inserted = true;
+        document.getElementById('s2-phase-2').classList.remove('hidden');
+
+    } else {
+        // 拖到其他段，显示加号反馈
+        showLegendMessage("➕ 已放置，但未落在核心T-DNA区域");
     }
-    document.getElementById('bt-green-gene').classList.add('invisible');
-    document.getElementById('green-segment-top').classList.remove('hidden');
-    state[2].inserted = true;
+
     initS2Components();
-    document.getElementById('s2-phase-2').classList.remove('hidden');
 }
+
+// 显示图例提示
+function showLegendMessage(msg){
+    let legendTip = document.getElementById('s2-legend-tip');
+    if(!legendTip){
+        legendTip = document.createElement('div');
+        legendTip.id = 's2-legend-tip';
+        legendTip.className = "absolute -right-36 top-3/4 text-[10px] text-slate-800";
+        document.getElementById('stage-2').appendChild(legendTip);
+    }
+    legendTip.innerText = msg;
+}
+
+// 显示图例提示
+function showLegendMessage(msg){
+    let legendTip = document.getElementById('s2-legend-tip');
+    if(!legendTip){
+        legendTip = document.createElement('div');
+        legendTip.id = 's2-legend-tip';
+        legendTip.className = "absolute -right-36 top-3/4 text-[10px] text-slate-800";
+        document.getElementById('stage-2').appendChild(legendTip);
+    }
+    legendTip.innerText = msg;
+}
+
+// 允许拖拽
+function allowDrop(ev){ ev.preventDefault(); }
 function initS2Components() {
     const comps = ["启动子", "终止子", "标记基因", "复制原点", "内含子", "起始密码子"];
     const container = document.getElementById('comp-container');

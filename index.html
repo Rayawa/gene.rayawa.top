@@ -45,7 +45,7 @@
                                         d="M20,40 C10,20 80,10 90,40 C100,70 10,110 30,80 C50,50 10,30 40,20 C70,10 90,60 70,90 C50,120 10,80 30,60 C50,40 80,80 60,100 C40,120 0,90 20,70 C40,50 90,40 70,20 C50,0 20,30 40,50"
                                         fill="none" stroke="#3b82f6" stroke-width="1.5" />
                                 </svg>
-                                <div class="plasmid-in-cell border-2 border-dashed border-green-300">
+                                <div class="plasmid-in-cell">
                                     <svg width="44" height="44" viewBox="0 0 100 100">
                                         <circle cx="50" cy="50" r="40" fill="none" stroke="#86efac" stroke-width="4" />
                                         <path d="M 50,10 A 40,40 0 0 1 90,50" fill="none" stroke="#22c55e"
@@ -74,7 +74,7 @@
                                         d="M30,30 C50,10 90,30 80,60 C70,90 20,110 40,80 C60,50 10,40 30,20 C50,0 90,50 70,80 C50,110 0,70 20,50 C40,30 80,70 60,90 C40,110 10,80 30,60 C50,40 90,30 70,10 C50,-10 20,20 40,40"
                                         fill="none" stroke="#10b981" stroke-width="1.5" />
                                 </svg>
-                                <div class="plasmid-in-cell border-2 border-dashed border-orange-300">
+                                <div class="plasmid-in-cell">
                                     <svg width="44" height="44" viewBox="0 0 100 100">
                                         <circle cx="50" cy="50" r="40" fill="none" stroke="#fdba74" stroke-width="5" />
                                         <path d="M 50,10 A 40,40 0 0 1 84.6,70" fill="none" stroke="#f97316"
@@ -98,15 +98,7 @@
 
                 <!-- Stage 2: Carrier Construction -->
                 <div id="stage-2" class="stage-content hidden h-full flex flex-col items-center overflow-y-auto">
-                    <div id="s2-tools" class="w-full bg-slate-50 p-3 rounded-xl border border-slate-200 mb-4">
-                        <p class="text-[10px] font-black text-slate-500 uppercase mb-2 text-center">选择实验工具</p>
-                        <div class="flex justify-center gap-2 flex-wrap">
-                            <button class="tool-btn" onclick="toggleTool(this, '限制酶')">限制酶</button>
-                            <button class="tool-btn" onclick="toggleTool(this, 'DNA连接酶')">DNA连接酶</button>
-                            <button class="tool-btn" onclick="toggleTool(this, 'DNA聚合酶')">DNA聚合酶</button>
-                            <button class="tool-btn" onclick="toggleTool(this, '解旋酶')">解旋酶</button>
-                        </div>
-                    </div>
+
 
                     <div id="s2-phase-1" class="w-full flex flex-col items-center">
                         <p class="text-xs font-black text-slate-400 mb-4 uppercase tracking-wider">插入目的基因至 T-DNA 区域</p>
@@ -116,18 +108,47 @@
                                 draggable="true" ondragstart="onS2DragStart(event)"></div>
                             <p class="text-[10px] text-center mt-2 text-green-600 font-bold">Bt 基因</p>
                         </div>
-                        <div class="relative">
-                            <svg class="w-56 h-56" viewBox="0 0 200 200">
-                                <circle cx="100" cy="100" r="80" fill="none" stroke="#f1f5f9" stroke-width="12" />
-                                <path id="plasmid-bottom" d="M 20,100 A 80,80 0 0 0 180,100" fill="none"
-                                    stroke="#94a3b8" stroke-width="12" stroke-linecap="round" />
-                                <path id="plasmid-top" d="M 180,100 A 80,80 0 0 0 20,100" fill="none" stroke="#f59e0b"
-                                    stroke-width="12" stroke-linecap="round" ondragover="allowDrop(event)"
-                                    ondrop="handleS2Insertion(event)" />
-                                <path id="green-segment-top" d="M 180,100 A 80,80 0 0 0 20,100" class="hidden"
-                                    fill="none" stroke="#22c55e" stroke-width="12.2" stroke-dasharray="50 251.2"
-                                    stroke-dashoffset="-100" />
+                        <div id="ti-plasmid-container"
+                            class="relative w-72 h-72 flex items-center justify-center font-sans">
+                            <svg width="240" height="240" viewBox="0 0 240 240">
+                                <circle cx="120" cy="120" r="100" fill="none" stroke="#22c55e" stroke-width="20"
+                                    stroke-dasharray="69.81 558.51" stroke-dashoffset="0" />
+
+                                <circle cx="120" cy="120" r="100" fill="none" stroke="#3b82f6" stroke-width="20"
+                                    stroke-dasharray="69.81 558.51" stroke-dashoffset="-69.81" />
+
+                                <circle cx="120" cy="120" r="100" fill="none" stroke="#f97316" stroke-width="20"
+                                    stroke-dasharray="139.62 488.70" stroke-dashoffset="-139.62" />
+
+                                <circle cx="120" cy="120" r="100" fill="none" stroke="#ec4899" stroke-width="20"
+                                    stroke-dasharray="69.81 558.51" stroke-dashoffset="-279.24" />
+
+                                <circle cx="120" cy="120" r="100" fill="none" stroke="#9ca3af" stroke-width="20"
+                                    stroke-dasharray="279.25 349.07" stroke-dashoffset="-349.05" />
+
+                                <text x="120" y="120" text-anchor="middle" dominant-baseline="middle" font-size="16"
+                                    font-weight="bold" fill="#111827">Ti质粒</text>
                             </svg>
+
+                            <div
+                                class="absolute -right-40 top-1/2 -translate-y-1/2 flex flex-col gap-3 text-[11px] border border-gray-200 bg-white p-3.5 rounded-lg shadow-sm">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-3.5 h-3.5 rounded-sm" style="background-color: #22c55e;"></div> 启动子
+                                </div>
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-3.5 h-3.5 rounded-sm" style="background-color: #3b82f6;"></div> 终止子
+                                </div>
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-3.5 h-3.5 rounded-sm" style="background-color: #f97316;"></div> T-DNA
+                                    核心
+                                </div>
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-3.5 h-3.5 rounded-sm" style="background-color: #ec4899;"></div> 复制原点
+                                </div>
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-3.5 h-3.5 rounded-sm" style="background-color: #9ca3af;"></div> 其他
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div id="s2-phase-2" class="hidden w-full max-w-xl flex flex-col items-center mt-6 pb-10">
