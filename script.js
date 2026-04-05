@@ -94,8 +94,17 @@ function checkS1() {
 const s2SelectedComps = new Set();
 let state = {
     1: { bt: false, ti: false },
-    2: { inserted: false, validated: false },
-    3: { agroConverted: false, plantInfected: false },
+    2: { 
+        inserted: false, 
+        validated: false, 
+        dragErrors: 0,    // 第二阶段：拖拽错误次数
+        selectErrors: 0   // 第二阶段：组件选择错误次数
+    },
+    3: { 
+        agroConverted: false, 
+        plantInfected: false,
+        dragErrors: 0     // 第三阶段：拖拽错误次数
+    },
     4: { done: false }
 };
 
@@ -170,6 +179,7 @@ function handleS2WrongDrop(ev) {
     ev.preventDefault();
     const dataType = ev.dataTransfer.getData("type");
     if (dataType === "bt-gene") {
+        state[2].dragErrors++;
         const guide = document.getElementById('s2-guide');
         guide.classList.remove('hidden', 'text-green-600');
         guide.classList.add('text-red-600', 'font-bold', 'animate-bounce');
@@ -216,10 +226,12 @@ function checkFinalS2() {
         if (submitBtn) submitBtn.disabled = false;
         
     } else if (missing.length > 0) {
+        state[2].selectErrors++;
                 typeWriter(`还差一点！你似乎漏掉了关键的工具：${missing.join('、')}。请重新检查。`);
 
         state[2].validated = false;
     } else if (extra.length > 0) {
+        state[2].selectErrors++;
                 typeWriter(`工具选多了！${extra.join('、')}在这个过程中是不需要的，请取消勾选。`);
         state[2].validated = false;
     }
@@ -235,7 +247,9 @@ function onS3Drop(ev, target) {
     const type = ev.dataTransfer.getData("type");
 
     // 错误处理：直接选植物
+    
     if (target === 'plant') {
+        state[3].dragErrors++;
         typeWriter("❌ 操作失败！重组Ti质粒无法直接进入植物细胞。必须先通过农杆菌进行转化。");
         // 视觉抖动提示
         document.getElementById('target-plant').classList.add('animate-shake');
@@ -437,7 +451,23 @@ function handleQuiz(btn, correct) {
 
 function finishAll() {
     document.getElementById('quiz-modal').classList.add('hidden');
-    document.getElementById('final-modal').classList.remove('hidden');
-    document.getElementById('time-stats').innerText = `实验用时：${document.getElementById('display-time').innerText}`;
-    typeWriter("恭喜完成全部实验流程！你已成功培育出抗虫棉。");
+    const finalModal = document.getElementById('final-modal');
+    finalModal.classList.remove('hidden');
+
+    // 格式化得分报告
+    const scoreReport = `
+        <div class="text-left mt-4 p-4 bg-slate-50 rounded-xl text-sm leading-relaxed">
+            <p><strong>实验用时：</strong> ${document.getElementById('display-time').innerText}</p>
+            <hr class="my-2">
+            <p class="font-bold text-blue-700">【阶段二：载体构建】</p>
+            <p>拖拽位置错误：${state[2].dragErrors} 次</p>
+            <p>组件选择错误：${state[2].selectErrors} 次</p>
+            <p class="font-bold text-emerald-700 mt-2">【阶段三：转化检测】</p>
+            <p>转化顺序错误：${state[3].dragErrors} 次</p>
+        </div>
+    `;
+
+    // 假设 final-modal 中有一个专门放统计的容器，或者直接替换 text-stats
+    document.getElementById('time-stats').innerHTML = scoreReport;
+    typeWriter("实验报告已生成，再接再厉！");
 }
