@@ -5,12 +5,6 @@ let s3Progress = 'step1'; // step1: 质粒导入, step2: T-DNA导入
 let timeElapsed = 0;
 let timerId = null;
 let isTimerRunning = true;
-let state = {
-    1: { bt: false, ti: false },
-    2: { inserted: false, validated: false },
-    3: { agroConverted: false, plantInfected: false },
-    4: { done: false }
-};
 
 function showToast(text) {
     const toast = document.getElementById('toast-msg');
@@ -58,66 +52,124 @@ function checkS1() {
 /* --- STAGE 2 --- *//* --- STAGE 2 --- */
 const s2SelectedComps = new Set();
 
-function onS2DragStart(ev) {
-    ev.dataTransfer.setData("type", "bt-gene");
-}
+// 确保 state 已经定义在全局作用域
+let state = {
+    1: { bt: false, ti: false },
+    2: { inserted: false, validated: false },
+    3: { agroConverted: false, plantInfected: false },
+    4: { done: false }
+};
 
+// 允许拖拽进入
 function allowDrop(ev) {
     ev.preventDefault();
 }
 
+// 开始拖拽：必须标记类型
+function onS2DragStart(ev) {
+    ev.dataTransfer.setData("type", "bt-gene");
+}
+
+// 正确放置：插入到 T-DNA 区域
 // 正确放置 Bt 基因
 function handleS2Insertion(ev) {
     ev.preventDefault();
-    const data = ev.dataTransfer.getData("type");
-    if (data !== "bt-gene") return;
+    const dataType = ev.dataTransfer.getData("type");
+    
+    if (dataType === "bt-gene") {
+        // --- 1. 状态和基础视觉更新 ---
+        state[2].inserted = true;
 
-    // 隐藏拖拽源
-    const btGene = document.getElementById('bt-green-gene');
-    btGene.classList.add('invisible');
+        // 隐藏拖拽源
+        const btGene = document.getElementById('bt-green-gene');
+        if (btGene) btGene.classList.add('invisible');
 
-    // 获取 SVG
-    const svg = document.getElementById('tdna-stroke').ownerSVGElement;
+        // --- 2. 核心视觉修改：实现“留白”插入效果 ---
+        const tdnaCore = document.getElementById('tdna-core');
+        if (!tdnaCore) return;
 
-    // 如果绿色弧不存在则创建
-    let btPath = document.getElementById('bt-inserted');
-    if (!btPath) {
-        btPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        btPath.setAttribute("d", "M 65,15 A 40,40 0 0 1 85,35");
-        btPath.setAttribute("fill", "none");
-        btPath.setAttribute("stroke", "#22c55e");
-        btPath.setAttribute("stroke-width", "10");
-        btPath.setAttribute("stroke-linecap", "round");
-        btPath.setAttribute("id", "bt-inserted");
+        // 获取原 T-DNA 核心的 SVG 命名空间和关键属性
+        const svgns = "http://www.w3.org/2000/svg";
+        const svgElement = tdnaCore.ownerSVGElement;
+        
+        // 如果已经插入过，就不重复创建（防止多次拖拽bug）
+        if (document.getElementById('bt-inserted-segment')) return;
 
-        // 初始化动画参数
-        const length = btPath.getTotalLength();
-        btPath.style.strokeDasharray = length;
-        btPath.style.strokeDashoffset = length;
-        btPath.style.transition = "stroke-dashoffset 1s ease forwards";
+        // 获取原橙色弧线的 dash 属性 (格式为 "实线长度 虚线长度")
+        const originalDashArray = tdnaCore.getAttribute('stroke-dasharray').split(' ');
+        const originalSolidLength = parseFloat(originalDashArray[0]); // T-DNA 实线总长 (约 139.62)
+        const originalDashOffset = parseFloat(tdnaCore.getAttribute('stroke-dashoffset')); // 偏移量 (约 -139.62)
 
-        svg.appendChild(btPath); // 插入 SVG 最后，保证在上层
+        // 定义绿色基因片段的长度 (比如占 80%)，两头各留 10% 橙色
+        const greenPercent = 0.4;
+        const greenSolidLength = originalSolidLength * greenPercent;
+        
+        // 计算绿色的偏移量，使其居中叠加在橙色上面
+        // 新偏移量 = 原偏移量 - (橙色长度 - 绿色长度) / 2
+        // 注意：因为原 offset 是负数，这里需要做负数加法才能让弧线逆时针移动（看起来居中）
+        const greenDashOffset = originalDashOffset - (originalSolidLength - greenSolidLength) / 2;
 
-        // 延迟触发动画
-        requestAnimationFrame(() => {
-            btPath.style.strokeDashoffset = 0;
-        });
+        // 创建新的绿色 circle 元素来代表 Bt 基因
+        const btSegment = document.createElementNS(svgns, "circle");
+        
+        // 复制原 T-DNA 的坐标和半径
+        btSegment.setAttribute("cx", tdnaCore.getAttribute("cx"));
+        btSegment.setAttribute("cy", tdnaCore.getAttribute("cy"));
+        btSegment.setAttribute("r", tdnaCore.getAttribute("r"));
+        
+        // 设置新的样式和位置
+        btSegment.setAttribute("fill", "none");
+        btSegment.setAttribute("stroke", "#22c55e"); // 绿色
+        btSegment.setAttribute("stroke-width", "20"); // 保持宽度一致
+        
+        // 关键：设置新的 dasharray 和 offset
+        // 实线部分是计算出的短绿色，虚线部分必须足够长以填满圆周 (originalSolidLength * 5 是个安全值)
+        btSegment.setAttribute("stroke-dasharray", `${greenSolidLength} ${originalSolidLength * 5}`);
+        btSegment.setAttribute("stroke-dashoffset", greenDashOffset.toString());
+        
+        // 设置 ID 以便管理，并添加脉冲动画
+        btSegment.setAttribute("id", "bt-inserted-segment");
+        btSegment.classList.add('animate-pulse');
+
+        // 将绿色片段插入到 SVG 中，它会自动叠加在橙色上面
+        svgElement.appendChild(btSegment);
+
+        // 原橙色 tdnaCore 保持原样不用动，它会自动露出两头
+
+        // --- 3. 后续阶段引导 ---
+        const guide = document.getElementById('s2-guide');
+        if (guide) {
+            guide.classList.remove('hidden', 'text-red-600');
+            guide.classList.add('text-green-600', 'font-bold');
+            guide.innerHTML = "✅ 成功！Bt基因片段已整合至 T-DNA 核心区域";
+        }
+
+        setTimeout(() => {
+            if (typeof initS2Components === 'function') {
+                initS2Components();
+            }
+            const phase2 = document.getElementById('s2-phase-2');
+            if (phase2) {
+                phase2.classList.remove('hidden');
+                phase2.scrollIntoView({ behavior: 'smooth' });
+            }
+        }, 1000);
     }
-
-    // 更新状态并显示第二阶段
-    state[2].inserted = true;
-    initS2Components();
-    document.getElementById('s2-phase-2').classList.remove('hidden');
 }
 
-// 错误放置 Bt 基因
+// 错误放置：逻辑反馈
 function handleS2WrongDrop(ev) {
     ev.preventDefault();
-    const data = ev.dataTransfer.getData("type");
-    if (data === "bt-gene") {
+    const dataType = ev.dataTransfer.getData("type");
+    
+    if (dataType === "bt-gene") {
         const guide = document.getElementById('s2-guide');
-        guide.classList.remove('hidden');
-        guide.innerHTML = "<p class='text-red-600 font-bold'>❌ Bt 基因放置错误，请放到橙色 T-DNA 核心区域</p>";
+        guide.classList.remove('hidden', 'text-green-600');
+        guide.classList.add('text-red-600', 'font-bold', 'animate-bounce');
+        guide.innerHTML = "❌ 放置位置不正确。Bt 基因必须整合在 T-DNA 核心区才能进入植物细胞！";
+        
+        // 500ms 后移除抖动动画，方便下次触发
+        setTimeout(() => guide.classList.remove('animate-bounce'), 500);
     }
 }
 
@@ -144,15 +196,31 @@ function initS2Components() {
 
 function checkFinalS2() {
     const required = ["启动子", "终止子", "标记基因", "复制原点"];
+    // 1. 找出缺少的元件
     const missing = required.filter(x => !s2SelectedComps.has(x));
+    // 2. 找出多余的元件
+    const extra = Array.from(s2SelectedComps).filter(x => !required.includes(x));
+    
     const guide = document.getElementById('s2-guide');
     guide.classList.remove('hidden');
-    if (missing.length === 0) {
-        guide.innerHTML = "<p class='text-green-700 font-bold'>✅ 载体构建成功！Ti质粒已准备就绪。</p>";
+
+    // 逻辑判定：既不能缺，也不能多
+    if (missing.length === 0 && extra.length === 0) {
+        guide.innerHTML = "<p class='text-green-700 font-bold'>✅ 载体构建精准无误！Ti质粒已准备就绪。</p>";
         state[2].validated = true;
-        document.getElementById('submit-btn').disabled = false;
-    } else {
-        guide.innerHTML = `<p class='text-red-600 font-bold'>❌ 缺少必要元件：${missing.join('、')}</p>`;
+        
+        // 如果有提交按钮，解除禁用
+        const submitBtn = document.getElementById('submit-btn');
+        if (submitBtn) submitBtn.disabled = false;
+        
+    } else if (missing.length > 0) {
+        // 情况 A：缺少必要元件
+        guide.innerHTML = `<p class='text-red-600 font-bold'>❌ 载体功能不全：还缺少 ${missing.join('、')}</p>`;
+        state[2].validated = false;
+    } else if (extra.length > 0) {
+        // 情况 B：多了不该有的东西（比如插入了两个启动子或无关片段）
+        guide.innerHTML = `<p class='text-orange-600 font-bold'>⚠️ 载体构建冗余：${extra.join('、')} 是多余的，这可能导致表达异常或载体过大。</p>`;
+        state[2].validated = false;
     }
 }
 /* --- STAGE 3 (RECONSTRUCTED LOGIC) --- */
