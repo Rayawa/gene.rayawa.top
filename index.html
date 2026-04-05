@@ -197,94 +197,59 @@ class="fixed top-20 left-5 z-50 bg-white text-black text-sm px-4 py-3 rounded-xl
                 </div>
 
                 <!-- Stage 3: Transformation (RECONSTRUCTED) -->
-                <div id="stage-3" class="stage-content hidden h-full flex flex-col items-center">
-                    <div class="text-center mb-6">
-                        <h3 id="s3-title" class="text-sm font-black text-slate-700">第一步：请选择重组Ti质粒的初始受体细胞</h3>
-                        <p class="text-[10px] text-slate-400 mt-1 uppercase">将重组质粒拖拽至目标细胞中</p>
-                    </div>
+<div id="stage-3" class="stage-content hidden h-full flex flex-col items-center">
+    <div class="mb-12 flex flex-col items-center">
+        <p class="text-[10px] text-slate-400 mb-4 uppercase tracking-widest font-bold">待转化的重组质粒</p>
+        <div id="source-plasmid-container" class="p-6 bg-white rounded-full shadow-lg border-2 border-slate-50 cursor-grab active:cursor-grabbing transition-transform hover:scale-105"
+             draggable="true" ondragstart="onS3Drag(event)">
+            <svg width="80" height="80" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="40" fill="none" stroke="#cbd5e1" stroke-width="6" />
+                <path d="M 50,10 A 40,40 0 0 1 90,50" fill="none" stroke="#f59e0b" stroke-width="8" stroke-linecap="round" />
+                <path d="M 65,15 A 40,40 0 0 1 85,35" fill="none" stroke="#22c55e" stroke-width="10" stroke-linecap="round" />
+            </svg>
+            <div class="mt-2 text-center">
+                <span class="text-[11px] font-black text-slate-700">重组Ti质粒</span>
+            </div>
+        </div>
+        
+        <button id="btn-infect" onclick="startInfection()" class="hidden mt-6 bg-orange-500 text-white px-8 py-2 rounded-full font-bold text-xs animate-pulse shadow-lg hover:bg-orange-600">
+            农杆菌侵染植物
+        </button>
+    </div>
 
-                    <!-- 重组Ti质粒展示区 -->
-                    <div class="mb-10 p-6 bg-slate-50 rounded-3xl border border-dashed border-slate-300 relative">
-                        <div id="recomb-plasmid-container"
-                            class="cursor-grab active:cursor-grabbing flex flex-col items-center" draggable="true"
-                            ondragstart="onS3DragPlasmid(event)">
-                            <svg width="100" height="100" viewBox="0 0 100 100">
-                                <!-- 质粒骨架 -->
-                                <circle cx="50" cy="50" r="40" fill="none" stroke="#cbd5e1" stroke-width="6" />
-                                <!-- T-DNA 区域 (橙黄色) -->
-                                <path id="tdna-stroke" d="M 50,10 A 40,40 0 0 1 90,50" fill="none" stroke="#f59e0b"
-                                    stroke-width="8" stroke-linecap="round" />
-                                <!-- 插入的 Bt 基因 (绿色) -->
-                                <path d="M 65,15 A 40,40 0 0 1 85,35" fill="none" stroke="#22c55e" stroke-width="10"
-                                    stroke-linecap="round" />
-                            </svg>
-                            <div class="mt-2 flex flex-col items-center gap-1">
-                                <span class="text-[11px] font-bold text-slate-600">重组Ti质粒</span>
-                                <div class="flex gap-2">
-                                    <span class="text-[9px] px-1 bg-amber-100 text-amber-700 rounded">T-DNA</span>
-                                    <span class="text-[9px] px-1 bg-green-100 text-green-700 rounded">Bt基因</span>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- T-DNA 提取物 (仅在第一步完成后显示) -->
-                        <div id="tdna-only-container"
-                            class="hidden absolute inset-0 flex flex-col items-center justify-center cursor-grab"
-                            draggable="true" ondragstart="onS3DragTDNA(event)">
-                            <div
-                                class="relative w-20 h-10 bg-amber-500 rounded-full flex items-center justify-center border-2 border-amber-700">
-                                <div class="w-10 h-3 bg-green-500 rounded-full border border-green-800"></div>
-                            </div>
-                            <span class="mt-2 text-[10px] font-black text-amber-700 uppercase">含Bt基因的T-DNA</span>
-                        </div>
-                    </div>
-
-                    <!-- 受体细胞展示区 -->
-                    <div class="flex gap-16 items-start">
-                        <!-- 植物细胞 -->
-                        <div class="flex flex-col items-center gap-3">
-                            <span class="text-[11px] font-bold text-slate-500 uppercase">目标：植物细胞</span>
-                            <div id="target-plant" class="plant-cell border-amber-200 hover:bg-amber-50"
-                                ondragover="allowDrop(event)" ondrop="onS3Drop(event, 'plant')">
-                                <div
-                                    class="w-16 h-16 rounded-full border-4 border-slate-300 flex items-center justify-center bg-white shadow-inner">
-                                    <div id="plant-nucleus-dna"
-                                        class="w-10 h-1 text-slate-200 bg-slate-200 rounded-full"></div>
-                                </div>
-                                <p class="text-[10px] mt-2 text-slate-400">染色体 DNA</p>
-                                <div id="integrated-mark" class="hidden absolute top-2 right-2 text-green-600 text-lg">✔
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 农杆菌 -->
-                        <div class="flex flex-col items-center gap-3">
-                            <span class="text-[11px] font-bold text-slate-500 uppercase">目标：土壤农杆菌</span>
-                            <div id="target-agro" class="bacteria border-emerald-200 hover:bg-emerald-50"
-                                ondragover="allowDrop(event)" ondrop="onS3Drop(event, 'agro')">
-                                <svg class="nucleoid-tangle" viewBox="0 0 100 120">
-                                    <path d="M30,30 C50,10 90,30 80,60 C70,90 20,110 40,80" fill="none" stroke="#10b981"
-                                        stroke-width="1.5" />
-                                </svg>
-                                <div id="agro-plasmid-placeholder" class="hidden mt-10">
-                                    <svg width="30" height="30">
-                                        <circle cx="15" cy="15" r="10" fill="none" stroke="#22c55e" stroke-width="3"
-                                            stroke-dasharray="4 2" />
-                                    </svg>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 交互引导弹窗 (内部问题串) -->
-                    <div id="s3-guide-modal" class="hidden modal-overlay">
-                        <div class="guide-modal">
-                            <h4 class="text-blue-700 font-bold mb-2">🤔 思考一下：</h4>
-                            <p id="guide-text" class="text-sm text-slate-600 leading-relaxed mb-6"></p>
-                            <button onclick="closeGuide()"
-                                class="w-full bg-blue-600 text-white py-2 rounded-xl font-bold text-xs">我知道了，再去试试</button>
-                        </div>
+    <div class="flex gap-20 items-end">
+        <div class="flex flex-col items-center gap-4">
+            <div id="target-agro" class="w-24 h-40 border-4 border-dashed border-emerald-200 rounded-full flex flex-col items-center justify-center transition-all hover:bg-emerald-50"
+                 ondragover="allowDrop(event)" ondrop="onS3Drop(event, 'agro')">
+                <div id="agro-status" class="flex flex-col items-center">
+                    <div class="w-10 h-10 border-2 border-emerald-400 rounded-sm rotate-45 flex items-center justify-center opacity-30">
+                         <span class="text-[8px] -rotate-45 text-emerald-600 font-bold">拟核</span>
                     </div>
                 </div>
+                <div id="agro-plasmid-inner" class="hidden mt-4 scale-50">
+                    <svg width="60" height="60" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" fill="none" stroke="#94a3b8" stroke-width="8" />
+                        <path d="M 50,10 A 40,40 0 0 1 90,50" fill="none" stroke="#f59e0b" stroke-width="12" />
+                    </svg>
+                </div>
+            </div>
+            <span class="text-[11px] font-bold text-emerald-700">选项 A：土壤农杆菌</span>
+        </div>
+
+        <div class="flex flex-col items-center gap-4">
+            <div id="target-plant" class="w-32 h-32 border-4 border-dashed border-amber-200 rounded-2xl flex items-center justify-center relative hover:bg-amber-50"
+                 ondragover="allowDrop(event)" ondrop="onS3Drop(event, 'plant')">
+                <div class="flex flex-col items-center">
+                    <div id="plant-nucleus" class="w-14 h-14 rounded-full border-2 border-slate-200 flex items-center justify-center">
+                        <div id="chromosome" class="w-10 h-1.5 bg-slate-200 rounded-full transition-all duration-700"></div>
+                    </div>
+                </div>
+                <div id="flying-tdna" class="hidden absolute -left-20 w-8 h-3 bg-amber-500 rounded-full border border-orange-700 z-50"></div>
+            </div>
+            <span class="text-[11px] font-bold text-amber-700">选项 B：棉花受体细胞</span>
+        </div>
+    </div>
+</div>
 
                 <!-- Stage 4: Testing -->
 <div id="stage-4" class="stage-content hidden h-full flex flex-row items-center justify-center gap-12 p-8">

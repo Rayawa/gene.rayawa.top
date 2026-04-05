@@ -1,6 +1,5 @@
 let currentStep = 1;
 let s2SelectedTools = new Set();
-let s3Progress = 'step1';
 let timeElapsed = 0;
 let timerId = null;
 let isTimerRunning = true;
@@ -227,70 +226,74 @@ function checkFinalS2() {
 }
 
 /* --- STAGE 3 --- */
-function onS3DragPlasmid(ev) {
-    if (s3Progress !== 'step1') return;
-    ev.dataTransfer.setData("type", "plasmid");
-    typeWriter("正在将重组Ti质粒转入农杆菌，利用农杆菌的侵染特性作为“搬运工”。");
-}
-
-function onS3DragTDNA(ev) {
-    if (s3Progress !== 'step2') return;
-    ev.dataTransfer.setData("type", "tdna");
-    typeWriter("最后一步！请将带有Bt基因的T-DNA拖入棉花细胞。农杆菌会将T-DNA整合到植物染色体上。");
+function onS3Drag(ev) {
+    ev.dataTransfer.setData("type", "full-plasmid");
 }
 
 function onS3Drop(ev, target) {
     ev.preventDefault();
     const type = ev.dataTransfer.getData("type");
-    // 步骤 1: 转化农杆菌
-    if (s3Progress === 'step1' && type === 'plasmid') {
-        if (target === 'plant') {
-            typeWriter("操作无效。重组Ti质粒需要先进入农杆菌，无法直接整合进植物。");
-        } else if (target === 'agro') {
-            state[3].agroConverted = true;
-            completeS3Step1();
-        }
+
+    // 错误处理：直接选植物
+    if (target === 'plant') {
+        typeWriter("❌ 操作失败！重组Ti质粒无法直接进入植物细胞。必须先通过农杆菌进行转化。");
+        // 视觉抖动提示
+        document.getElementById('target-plant').classList.add('animate-shake');
+        setTimeout(() => document.getElementById('target-plant').classList.remove('animate-shake'), 500);
+        return;
     }
-    // 步骤 2: 侵染植物
-    else if (s3Progress === 'step2' && type === 'tdna') {
-        if (target === 'plant') {
-            completeS3Step2();
-        } else {
-            typeWriter("目标错误。T-DNA应该整合进植物细胞的细胞核中。");
-        }
+
+    // 正确处理：选择农杆菌
+    if (target === 'agro') {
+        document.getElementById('source-plasmid-container').classList.add('invisible');
+        document.getElementById('agro-plasmid-inner').classList.remove('hidden');
+        document.getElementById('target-agro').classList.replace('border-dashed', 'border-solid');
+        document.getElementById('target-agro').classList.add('bg-emerald-100');
+        
+        typeWriter("✅ 成功！重组Ti质粒已进入农杆菌。现在利用农杆菌的侵染特性，将基因送入植物细胞。");
+        
+        setTimeout(() => {
+            document.getElementById('btn-infect').classList.remove('hidden');
+        }, 800);
     }
 }
 
-function completeS3Step1() {
-    document.getElementById('recomb-plasmid-container').classList.add('hidden');
-    document.getElementById('agro-plasmid-placeholder').classList.remove('hidden');
-    typeWriter("农杆菌转化成功！重组Ti质粒已进入细胞，准备释放T-DNA。");
+function startInfection() {
+    document.getElementById('btn-infect').classList.add('hidden');
+    const tdna = document.getElementById('flying-tdna');
+    const agroInner = document.getElementById('agro-plasmid-inner');
+    
+    // 1. 模拟质粒在农杆菌内“激活”，准备释放 T-DNA
+    agroInner.classList.add('animate-pulse');
+    typeWriter("农杆菌正在感应植物信号... 注意！只有 T-DNA（橙色部分）会脱离质粒进入植物。");
+
     setTimeout(() => {
-        s3Progress = 'step2';
-        document.getElementById('s3-title').innerText = "农杆菌介导法";
-        document.getElementById('tdna-only-container').classList.remove('hidden');
-        document.getElementById('target-agro').classList.add('ring-4', 'ring-emerald-400');
-        typeWriter("农杆菌已就绪！现在请拖动生成的T-DNA片段去侵染棉花受体细胞。");
+        // 2. 显示橙色 T-DNA 飞出
+        tdna.classList.remove('hidden');
+        
+        // 3. 执行平移动画
+        tdna.animate([
+            { left: '-120px', opacity: 1, transform: 'scale(1.2)' },
+            { left: '40px', opacity: 1, transform: 'scale(0.8)' }
+        ], {
+            duration: 2000,
+            easing: 'ease-in-out',
+            fill: 'forwards'
+        }).onfinish = () => {
+            // 4. 最终状态：橙色整合进染色体
+            tdna.style.display = 'none';
+            const chr = document.getElementById('chromosome');
+            
+            // 结果：染色体变为橙色（代表 T-DNA 整合）
+            chr.classList.replace('bg-slate-200', 'bg-orange-500');
+            chr.classList.add('shadow-[0_0_10px_#f59e0b]');
+            
+            typeWriter("✨ 转化完成！含Bt基因的T-DNA已成功整合至植物染色体。植物现在具备了抗虫特性！");
+            document.getElementById('submit-btn').disabled = false;
+        };
     }, 1000);
-}
+};
 
-function completeS3Step2() {
-    document.getElementById('tdna-only-container').classList.add('hidden');
-    document.getElementById('plant-nucleus-dna').classList.replace('bg-slate-200', 'bg-green-600');
-    document.getElementById('integrated-mark').classList.remove('hidden');
-    state[3].plantInfected = true;
-    typeWriter("整合完成！Bt基因已成功插入棉花基因组。接下来我们需要进行组织培养与检测。");
-    document.getElementById('submit-btn').disabled = false;
-}
-
-function showS3Guide(text) {
-    document.getElementById('guide-text').innerHTML = text;
-    document.getElementById('s3-guide-modal').classList.remove('hidden');
-}
-
-function closeGuide() {
-    document.getElementById('s3-guide-modal').classList.add('hidden');
-}
 
 /* --- STAGE 4 --- */
 function runChecks() {
