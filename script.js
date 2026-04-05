@@ -446,21 +446,20 @@ function handleQuiz(btn, correct) {
 
 function finishAll() {
     document.getElementById('quiz-modal').classList.add('hidden');
-    const finalModal = document.getElementById('final-modal');
-    finalModal.classList.remove('hidden');
-
-    const scoreReport = `
-        <div class="text-left mt-4 p-4 bg-slate-50 rounded-xl text-sm leading-relaxed">
-            <p><strong>实验用时：</strong> ${document.getElementById('display-time').innerText}</p>
-            <hr class="my-2">
-            <p class="font-bold text-blue-700">【阶段二：载体构建】</p>
-            <p>拖拽位置错误：${state[2].dragErrors} 次</p>
-            <p>组件选择错误：${state[2].selectErrors} 次</p>
-            <p class="font-bold text-emerald-700 mt-2">【阶段三：转化检测】</p>
-            <p>转化顺序错误：${state[3].dragErrors} 次</p>
+    document.getElementById('final-modal').classList.remove('hidden');
+    
+    // 获取计时
+    const finalTime = document.getElementById('display-time').innerText;
+    
+    // 渲染最终得分报告
+    const statsHtml = `
+        <div class="space-y-2 text-sm text-slate-600 border-t border-b py-4 my-4">
+            <p>⏱️ 实验总用时：<span class="text-blue-600 font-bold">${finalTime}</span></p>
+            <p>❌ 载体构建拖拽错误：<span class="text-red-500">${state[2].dragErrors}</span> 次</p>
+            <p>📝 载体组件选择错误：<span class="text-red-500">${state[2].selectErrors}</span> 次</p>
+            <p>🔄 转化路径操作错误：<span class="text-orange-500">${state[3].dragErrors}</span> 次</p>
         </div>
     `;
-
-    document.getElementById('time-stats').innerHTML = scoreReport;
-    typeWriter("实验报告已生成，再接再厉！");
+    
+    document.getElementById('time-stats').innerHTML = statsHtml;
 }
