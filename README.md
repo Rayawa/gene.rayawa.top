@@ -1,32 +1,34 @@
-# gene.rayawa.top
+# Interactive Laboratory for Agrobacterium-Mediated Transformation
 
 English | [简体中文](README_zh.md)
 
-An interactive browser demonstration of Agrobacterium-mediated plant transformation.
+### project maintainer@2026. All rights reserved.
+An interactive web page developed with HTML5+JS+CSS to illustrate Agrobacterium-mediated plant genetic transformation through a digital demonstration.
 
-Archived project retained for reference.
+---
 
-## Overview
+### 📂 File Structure
 
-The interface illustrates stages of a plant genetic transformation experiment using interactive controls and animations. It is a teaching demonstration rather than an experimental protocol or biological simulation.
+The project separates presentation, logic and data in a modular design for maintenance and extension:
 
-## Technology and Dependencies
+* **`index.html`**: the project entry point, defining the simulator's UI structure.
+* **`style.css`**: visual styles, layout and experimental animations.
+* **`script.js`**: interaction control, experiment-flow management and animation triggers.
+* **`favicon.ico`**: the site icon.
 
-HTML, CSS and JavaScript. The page loads DragDropTouch from a CDN for touch interactions; network access is needed for that external script. Python 3 is optional for local serving.
+---
 
-## Repository Structure
+### 🚀 Usage
 
-- `index.html` — interface
-- `script.js` — interaction and experiment flow
-- `style.css` — layout and animation
-- `favicon.ico` — site icon
+This is a frontend-only project that runs in two steps:
 
-## Quick Start
+1. **Download the source**: place all project files in one folder. Downloading and extracting a ZIP archive is recommended.
+2. **Run locally**: find **`index.html`** in the folder and open it in a browser (Chrome, Edge or Safari is recommended) to start the interactive experiment.
 
-Serve the repository root so absolute asset paths resolve correctly:
+---
 
-```bash
-python3 -m http.server 8000
-```
+### 💡 Development Notes
 
-Open `http://localhost:8000/`. Edit the HTML and assets directly; no frontend build is required.
+* **Internationalization**: edit the fields in `content.json` to switch languages without changing the HTML tags in `index.html`.
+* **Interaction logic**: the experiment follows the biological sequence of Agrobacterium transformation, including Ti plasmid construction, infection and T-DNA integration; `script.js` enforces the step logic.
+* **Lightweight implementation**: no heavyweight third-party framework is required. The page loads quickly and is intended as a teaching aid.
